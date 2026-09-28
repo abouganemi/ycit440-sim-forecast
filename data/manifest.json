@@ -1,0 +1,10 @@
+{
+  "data/raw/donneesouvertes-interventions-sim.csv": {
+    "bytes": 30573515,
+    "sha256": "7948d34c51410699e0bfd1922865bbcc7f8f1e9b29b3ceeffc676160170c74b0"
+  },
+  "data/raw/donneesouvertes-interventions-sim2020.csv": {
+    "bytes": 76744488,
+    "sha256": "843a8531ae26f301dfbe1b98067067c23c39ea3ec50c4ac475472cc2d276926d"
+  }
+}
