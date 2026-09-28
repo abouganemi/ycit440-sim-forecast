@@ -9,8 +9,11 @@ repos:
         args: [feat, fix, build, chore, ci, docs, perf, refactor, revert, style, test]
   - repo: builtin
     hooks:
+      # docs/source/ holds official portal files saved byte-for-byte; never rewrite them.
       - id: end-of-file-fixer
+        exclude: ^docs/source/
       - id: trailing-whitespace
+        exclude: ^docs/source/
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-toml
