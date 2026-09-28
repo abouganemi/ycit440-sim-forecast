@@ -1,0 +1,55 @@
+# Short-lived pod for moving files in and out of the PVCs (k8s/storage.yaml);
+# restricted Pod Security forbids mounting host directories directly.
+# busybox provides the `tar` that kubectl cp needs. It exits on its own after
+# an hour; it also binds the PVCs on first start (WaitForFirstConsumer).
+#
+#   kubectl apply -f k8s/data-loader.yaml
+#   kubectl wait -n ml --for=condition=Ready pod/ycit440-sim-forecast-loader
+#   kubectl cp data/raw ml/ycit440-sim-forecast-loader:/data         # -> /data/raw (repeat for interim/processed)
+#   kubectl cp ml/ycit440-sim-forecast-loader:/models models          # trained models back to ./models
+#   kubectl delete -f k8s/data-loader.yaml                # the PVCs and their data stay
+#
+# Don't run it while a training Job is writing to models/.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ycit440-sim-forecast-loader
+  namespace: ml
+spec:
+  restartPolicy: Never
+  activeDeadlineSeconds: 3600
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000 # same owner as the training Job and the host user
+    runAsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: loader
+      image: busybox:1.37.0@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      command: ["sleep", "3600"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: ["ALL"]
+      resources:
+        requests:
+          cpu: 100m
+          memory: 64Mi
+        limits:
+          cpu: "1"
+          memory: 256Mi
+      volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: models
+          mountPath: /models
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: ycit440-sim-forecast-data
+    - name: models
+      persistentVolumeClaim:
+        claimName: ycit440-sim-forecast-models
