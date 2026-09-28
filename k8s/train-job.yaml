@@ -1,0 +1,97 @@
+# One-off training run on the local k3s cluster (~/Projects/vulcan-k3s), in the
+# `ml` namespace, which enforces the "restricted" Pod Security level.
+# Prerequisites (see the ds-project-setup skill's references/containers.md):
+#   - vulcan-k3s applied, so the node advertises amd.com/gpu
+#   - the PVCs from k8s/storage.yaml exist and hold the data (k8s/data-loader.yaml)
+#   - image imported into k3s: docker save ycit440-sim-forecast:0.1.0 | sudo k3s ctr images import -
+# Run:   kubectl apply -f k8s/train-job.yaml && kubectl logs -n ml -f job/ycit440-sim-forecast-train
+# Rerun: kubectl delete -f k8s/train-job.yaml, then apply again (Job specs are
+#        immutable). Deleting the Job never touches the PVCs.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ycit440-sim-forecast-train
+  namespace: ml
+spec:
+  backoffLimit: 0 # a failed training run needs a human, not blind retries
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false # training never talks to the API server
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # matches the image's USER and the host user's files
+        runAsGroup: 1000
+        supplementalGroups: [44, 990] # host video, render: open /dev/dri and /dev/kfd
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: train
+          image: ycit440-sim-forecast:0.1.0 # same tag as the docker build / import
+          imagePullPolicy: Never # image comes from the local import, not a registry
+          command: ["python", "scripts/check_gpu.py"] # replace with the training entrypoint
+          env:
+            # The root filesystem is read-only, so every cache goes to the /tmp
+            # emptyDir (lost when the pod ends; MIOpen re-tunes on the next run).
+            - name: HOME
+              value: /tmp
+            - name: XDG_CACHE_HOME
+              value: /tmp/.cache
+            - name: MIOPEN_USER_DB_PATH # MIOpen kernel tuning database
+              value: /tmp/miopen
+            - name: MIOPEN_CUSTOM_CACHE_DIR # MIOpen compiled kernels
+              value: /tmp/miopen
+            - name: TRITON_CACHE_DIR
+              value: /tmp/triton
+            - name: TORCHINDUCTOR_CACHE_DIR # torch.compile
+              value: /tmp/torchinductor
+            - name: TORCH_HOME # torch.hub downloads (egress is blocked in `ml` anyway)
+              value: /tmp/torch
+            - name: MPLCONFIGDIR
+              value: /tmp/matplotlib
+            - name: PYTHONDONTWRITEBYTECODE # bytecode is compiled at build time
+              value: "1"
+            # CatBoost writes catboost_info/ into the working directory (/app,
+            # read-only) by default: pass train_dir="/tmp/catboost_info" or
+            # allow_writing_files=False. Write models to /app/models.
+          resources:
+            # Placeholders sized for this box (24 threads, 64 GB); tune per run.
+            # The /dev/shm emptyDir below counts against the memory limit.
+            requests:
+              cpu: "4"
+              memory: 16Gi
+            limits:
+              cpu: "12"
+              memory: 32Gi
+              amd.com/gpu: 1
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+              readOnly: true
+            - name: models
+              mountPath: /app/models
+            - name: tmp
+              mountPath: /tmp
+            - name: dshm # DataLoader workers share tensors through /dev/shm (64 MiB by default)
+              mountPath: /dev/shm
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ycit440-sim-forecast-data
+            readOnly: true
+        - name: models
+          persistentVolumeClaim:
+            claimName: ycit440-sim-forecast-models
+        - name: tmp
+          emptyDir:
+            sizeLimit: 4Gi
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi

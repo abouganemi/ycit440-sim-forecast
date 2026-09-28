@@ -1,139 +1,91 @@
-# python-template
+# ycit440-sim-forecast
 
-Default template for python projects. Includes: uv, ruff, basedpyright, pytest, pytest-cov, prek and semantic-release.
-
-## Replace this readme with the project's readme
-
-## New project from this template
-
-```bash
-gh repo create my-project --private --template abouganemi/python-template --clone
-cd my-project
-```
-
-Then rename the package:
-
-1. `pyproject.toml`: set `name` and `description`
-2. `git mv src/python_template src/my_project` (underscores, matching `name`)
-3. `tests/test_import.py`: update the import
-4. `uv lock`
-
-## Notes
-
-- [`prek`](https://github.com/j178/prek) runs the checks in `.pre-commit-config.yaml`:
-  - `ruff` formats and lints the code, including import sorting and Google-style docstrings (`D` rules, not applied to `tests/`).
-  - `conventional-pre-commit` validates the commit message.
-  - `uv-lock` keeps `uv.lock` in sync with `pyproject.toml`.
-  - `builtin` fixes whitespace and end of files and checks YAML/TOML, merge conflicts, large files and private keys.
-- The hooks run through the global git hooks from `shell-configs` (`core.hooksPath`), so there is no per-repo `prek install` (prek refuses to install while `core.hooksPath` is set).
-- `pyproject.toml` configures `ruff`, `basedpyright`, `pytest` and `coverage`; move it next to the code if that is not the repository root.
-- `.python-version` pins the Python version uv uses.
-- `pytest` measures branch coverage of `src/` and fails below 90%.
-
-## Package management
-
-Packages are managed with [uv](https://docs.astral.sh/uv/): `uv add <package>` (or `uv add --dev <package>`) updates `pyproject.toml` and `uv.lock`.
-
-## CLI and API
-
-- `CLI`s are built with [typer](https://typer.tiangolo.com/)
-- `API`s are built with [fastapi](https://fastapi.tiangolo.com/)
+Data-science project built on [python-template](https://github.com/abouganemi/python-template) (uv, ruff, basedpyright, pytest, prek).
 
 ## Setup
 
-### 1. Install uv
-
-Linux/macOS:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-macOS also has a Homebrew option:
-
-```bash
-brew install uv
-```
-
-Keep it up to date with:
-
-```bash
-uv self update
-```
-
-### 2. Python version
-
-`.python-version` pins the Python version this project uses (currently 3.14). uv downloads that version automatically the first time it is needed, so you don't need it pre-installed. To do it explicitly, or to change the pinned version:
-
-```bash
-uv python install
-uv python pin <version>
-```
-
-### 3. Create the virtual environment
-
 ```bash
 uv sync --all-groups --locked
 ```
 
-This creates `.venv/` in the project directory and installs the project plus the `dev` dependency group (`pytest`, `pytest-cov`, `ruff`, `basedpyright`, `prek`). `--all-groups` includes every dependency group, not just the default ones; `--locked` installs exactly what's in `uv.lock` and fails instead of updating it if `pyproject.toml` and the lockfile disagree.
+## Layout
 
-### 4. Using the environment
+| Path | Contents |
+|---|---|
+| `src/ycit440_sim_forecast/` | reusable code, tested (coverage gate 90%) |
+| `notebooks/` | exploration: VS Code notebooks and `# %%` scripts; outside the coverage gate |
+| `data/raw/` | source data, never edited; gitignored |
+| `data/interim/`, `data/processed/` | derived data (e.g. parquet), rebuilt from raw; gitignored |
+| `models/` | trained artifacts; gitignored |
+| `data/manifest.json` | committed sha256 + size of the inputs a result was built from |
 
-Prefer `uv run <command>`, which uses the project's `.venv` without activating it:
+Notebook outputs are stripped by the `nbstripout` hook. Open notebooks in VS Code and pick the `.venv` kernel.
 
-```bash
-uv run pytest
-uv run python    # Python shell with the project installed
-```
-
-You can also activate the environment directly if you want plain commands without the `uv run` prefix:
-
-```bash
-source .venv/bin/activate
-deactivate
-```
-
-Editors such as Neovim (via basedpyright) and VS Code detect `.venv` automatically once it exists, so no extra configuration is needed.
-
-### 5. Day-to-day dependency changes
+## Data
 
 ```bash
-uv add <package>
-uv add --dev <package>
-uv remove <package>
-uv lock --upgrade              # upgrade all dependencies
-uv lock --upgrade-package <package>
-uv sync
+uv run python -m ycit440_sim_forecast.manifest write data/raw   # after adding or changing inputs
+uv run python -m ycit440_sim_forecast.manifest verify           # fails if inputs changed
 ```
 
-Commit both `pyproject.toml` and `uv.lock` after any of these.
+## Reproducibility
 
-### 6. Resetting the environment
-
-If the environment gets into a bad state, delete it and recreate it:
-
-```bash
-rm -rf .venv
-uv sync --all-groups --locked
-```
-
-### Troubleshooting
-
-- `uv sync --locked` fails with a lockfile error: `uv.lock` is out of date with `pyproject.toml`. Run `uv lock` to refresh it (the `uv-lock` pre-commit hook also keeps them in sync automatically).
+Call `ycit440_sim_forecast.seed.seed_everything()` at the start of a run and pass the returned seed as `random_state`/`seed` to scikit-learn, XGBoost, LightGBM and CatBoost.
 
 ## Checks
 
 ```bash
-uv run prek run --all-files
+uv run prek run --all-files   # only sees files git tracks: `git add` new files first
 uv run basedpyright
 uv run pytest
 ```
 
-Pull requests run the same checks in `.github/workflows/check_precommit.yml`.
+## GPU (AMD ROCm)
 
-## Releases
+PyTorch comes from the PyTorch ROCm index (see `[tool.uv.index]` in `pyproject.toml`) and lives in the `gpu` dependency group, which is a default group, so every `uv sync` installs it. CI runs `uv sync --all-groups --no-group gpu --locked` to skip the ~14 GB wheel; nothing in `src/` may require torch at import time for CI to pass.
 
-Merges to `main` run [semantic-release](https://semantic-release.gitbook.io/) (`.github/workflows/release.yaml`). Based on the conventional commits since the last tag, it creates the tag and GitHub release, updates `CHANGELOG.md` and sets the version in `pyproject.toml`/`uv.lock`, then commits those back to `main` as `chore(release): <version>`.
+```bash
+uv run --env-file .env python scripts/check_gpu.py   # prints the GPU and runs a matmul
+```
 
-If `main` is protected, allow GitHub Actions to push to it, or the release commit fails.
+`.env` sets `HIP_VISIBLE_DEVICES` to the discrete GPU. The CPU's integrated GPU is disabled in the BIOS, so this is a safety net: ROCm would list it again if it were re-enabled. VS Code loads `.env` automatically; on the command line pass `--env-file .env`.
+
+Keep the project on the same filesystem as `~/.cache/uv` so uv hardlinks torch instead of copying it.
+
+## Training in a container / k3s
+
+Needs Docker Engine (not a VM-based runtime such as Colima, which can't pass the GPU through). The image is ~15 GB, almost all torch.
+
+```bash
+docker build -t ycit440-sim-forecast:0.1.0 .
+docker run --rm --device /dev/kfd --device /dev/dri \
+  --group-add video --group-add render --security-opt seccomp=unconfined \
+  --ipc=host --env-file .env \
+  -v "$PWD/data:/app/data:ro" -v "$PWD/models:/app/models" \
+  ycit440-sim-forecast:0.1.0
+```
+
+The k3s cluster (`~/Projects/vulcan-k3s`) runs pods in the `ml` namespace under the `restricted` Pod Security level, which forbids mounting host directories, so data and models live on two PVCs:
+
+```bash
+docker save ycit440-sim-forecast:0.1.0 | sudo k3s ctr images import -
+
+# once: create the PVCs and copy the data in
+kubectl apply -f k8s/storage.yaml -f k8s/data-loader.yaml
+kubectl wait -n ml --for=condition=Ready pod/ycit440-sim-forecast-loader
+kubectl cp data/raw ml/ycit440-sim-forecast-loader:/data
+kubectl delete -f k8s/data-loader.yaml
+
+# train
+kubectl apply -f k8s/train-job.yaml && kubectl logs -n ml -f job/ycit440-sim-forecast-train
+
+# fetch the models (start the loader again, copy, delete it)
+kubectl apply -f k8s/data-loader.yaml
+kubectl wait -n ml --for=condition=Ready pod/ycit440-sim-forecast-loader
+kubectl cp ml/ycit440-sim-forecast-loader:/models models
+kubectl delete -f k8s/data-loader.yaml
+```
+
+**Deleting a PVC deletes its data** (the `local-path` storage class has reclaim policy `Delete`), so never `kubectl delete -f k8s/` or `kubectl delete -f k8s/storage.yaml` unless the data and models are safe elsewhere. Deleting the Job or the loader pod is always safe.
+
+The image tag is the project version at scaffold time; when it changes, update the tag in the build commands and in `k8s/train-job.yaml` together. Replace the `check_gpu.py` command in the Job with the training entrypoint once it exists.

@@ -1,0 +1,34 @@
+# Persistent storage for the training Job, kept apart from k8s/train-job.yaml
+# so deleting and re-applying the Job never touches the data.
+#
+# WARNING: the local-path storage class has reclaimPolicy Delete. Deleting a
+# PVC (kubectl delete pvc, or kubectl delete -f on this file or on the whole
+# k8s/ directory) permanently deletes the data on it. Copy models out first.
+#
+# local-path binds WaitForFirstConsumer: the PVCs stay Pending until a pod that
+# mounts them is scheduled (k8s/data-loader.yaml). The data lives on the node
+# under /var/lib/rancher/k3s/storage/. local-path doesn't enforce the sizes.
+# Apply once: kubectl apply -f k8s/storage.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ycit440-sim-forecast-data
+  namespace: ml
+spec:
+  storageClassName: local-path
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ycit440-sim-forecast-models
+  namespace: ml
+spec:
+  storageClassName: local-path
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi

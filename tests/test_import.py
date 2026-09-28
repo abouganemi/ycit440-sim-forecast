@@ -1,5 +1,5 @@
-import python_template
+import ycit440_sim_forecast
 
 
 def test_package_imports() -> None:
-    assert python_template.__name__ == "python_template"
+    assert ycit440_sim_forecast.__name__ == "ycit440_sim_forecast"
