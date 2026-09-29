@@ -182,7 +182,7 @@ plateau from 10:00 to 19:00.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Mean interventions per day | 227.2 | 278.2 | 305.6 | 332.9 | 332.7 | 358.3 | 316.2 |
 
-![Division weekly means](figures/07_division_weekly.png)
+![Weekly mean of daily counts, one panel per division](figures/07_division_weekly.png)
 
 ![Composition by group](figures/07_group_composition.png)
 
@@ -201,11 +201,11 @@ plateau from 10:00 to 19:00.
 | **Division × day** | **14,748** | **53** | **0%** | **0.14%** | 7.2 |
 | Caserne × day | 162,228 | 4 | 8.96% | 65.04% | 2.8 |
 
-![Division-day distribution](figures/07_division_box.png)
+![Division-day distribution, letter-value plot](figures/07_division_box.png)
 
 ### Step 7 · Seasonality and dynamics (2021–2024)
 
-![Weekday and month profiles](figures/07_seasonality.png)
+![Weekday by month index heatmap per division](figures/07_seasonality.png)
 
 ![STL decomposition, citywide](figures/07_stl_citywide.png)
 
