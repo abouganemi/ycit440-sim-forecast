@@ -28,6 +28,7 @@ dev = [
 ]
 eda = [
     "matplotlib>=3.11.2",
+    "seaborn>=0.13.2",
     "statsmodels>=0.15.0",
 ]
 gpu = [
