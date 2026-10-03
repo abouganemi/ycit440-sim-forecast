@@ -56,6 +56,10 @@ The proposed test period, 2025 onward, is only inspected for level changes.
    - **The plain 28-day mean ending at D−3 is better overall (8.03).** It is best or tied in
      Divisions 1, 2, 4 and 6; a same-weekday window is slightly better in Divisions 3 and 5.
    - This is feasibility evidence, not the final window selection.
+   - *Update 2026-10-03: rolling-origin validation over 2021–2024 (chunk 3) shows the two
+     baselines tie on daily forecasts (MAE 8.48 same-weekday 13 weeks, 8.49 plain 28-day), so
+     the 2024 advantage of the plain mean does not generalise. On weekly totals same-weekday
+     wins (35.1 vs 37.4). See `reports/baseline_report.md`.*
 8. **The typical day is symmetric; the tails are not.** In every division the mean is within
    about 1 of the median, but Division 1's maximum (384) is 13 times its median and its excess
    kurtosis is 245, almost all from the ice storm. Division 6 is the only near-normal division
@@ -354,6 +358,9 @@ MAE in interventions per day. Forecasts use only data at or before *D−3*.
 - **Baseline.** Keep the v2 same-weekday baseline, with the window chosen on validation data
   (13 and 26 weeks tie on 2024). Also report the **plain 28-day mean** as the secondary reference
   recommended in `09_FINAL_VERIFIED.md` §7: it was the stronger comparator in 2024.
+  - *Update 2026-10-03: selection on 2021–2024 picks the 13-week window (MAE 8.48), level with
+    the plain 28-day mean (8.49). Both stay as comparators. See
+    `reports/baseline_report.md`.*
 - **Features.**
   - Recent levels (rolling means ending at D−3) and calendar features: weekday, month, holidays.
   - Drop the linear time trend; the red-team review showed it over-predicts after Dec 2025.
@@ -382,6 +389,8 @@ No v2 number is contradicted. These results are new or sharper:
   that a simple model beats the plain mean by only about 1% on the test period, with a confidence
   interval including zero. Here the plain mean already beats the chosen baseline family on
   validation data, before any modelling.
+  - *Update 2026-10-03: this holds for 2024 only. Over 2021–2024 the two baselines tie (8.48 vs
+    8.49); see `reports/baseline_report.md`.*
 - **Division 6 behaves differently.** First-responder calls rose while Divisions 1–5 fell, it has
   the only strong weekend peak, persistent autocorrelation at lag 28, the weakest share of common
   shocks, and it sits 44% above the shared pattern in 2026.
