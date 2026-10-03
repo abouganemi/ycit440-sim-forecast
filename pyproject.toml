@@ -1,6 +1,6 @@
 [project]
 name = "ycit440-sim-forecast"
-version = "1.0.0"
+version = "1.1.0"
 description = "ycit440-sim-forecast (data science project)"
 readme = "README.md"
 authors = [{ name = "Isaac Abouganem", email = "43149476+abouganemi@users.noreply.github.com" }]

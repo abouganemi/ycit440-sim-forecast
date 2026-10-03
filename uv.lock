@@ -1069,7 +1069,7 @@ wheels = [
 
 [[package]]
 name = "ycit440-sim-forecast"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "." }
 default-groups = ["dev", "eda", "gpu"]
 dependencies = [

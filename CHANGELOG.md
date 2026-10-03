@@ -1,3 +1,12 @@
+# [1.1.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.0.0...v1.1.0) (2026-10-03)
+
+
+### Features
+
+* **baseline:** add baseline forecasters ([da9b894](https://github.com/abouganemi/ycit440-sim-forecast/commit/da9b894668f99fa4e7aa4f094ae4f867b027eccf))
+* **baseline:** add forecast spec and Forecaster protocol ([e0da147](https://github.com/abouganemi/ycit440-sim-forecast/commit/e0da147824dd7d2d7b0a21300efbf41745f2f126))
+* **baseline:** add rolling-origin validator ([e127db4](https://github.com/abouganemi/ycit440-sim-forecast/commit/e127db4ee4bc6b864c235f9fc4d839a955e6187a))
+
 # 1.0.0 (2026-10-03)
 
 
