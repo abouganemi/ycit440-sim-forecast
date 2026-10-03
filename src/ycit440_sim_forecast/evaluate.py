@@ -13,12 +13,14 @@ import datetime as dt
 import json
 from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
+import numpy as np
 import polars as pl
 import typer
 
 from ycit440_sim_forecast.baseline import PlainMean, SameWeekdayMean
+from ycit440_sim_forecast.seed import DEFAULT_SEED
 from ycit440_sim_forecast.spec import (
     V2_DAILY,
     WEEKLY,
@@ -270,6 +272,97 @@ def score(results: pl.DataFrame, by: Sequence[str] = ()) -> pl.DataFrame:
         .agg(n=pl.len(), mae=error.abs().mean(), bias=error.mean())
         .sort("model", *by)
     )
+
+
+def paired_bootstrap(
+    results: pl.DataFrame,
+    model: str,
+    reference: str,
+    n_boot: int = 2000,
+    seed: int = DEFAULT_SEED,
+    block: Literal["week"] = "week",
+) -> dict[str, Any]:
+    """Block bootstrap of the MAE difference between two models.
+
+    Rows are paired on ``(issue_date, DIVISION)`` and kept when both models
+    have a non-null ``y_true``. Whole ISO weeks of ``target_start`` are
+    resampled with replacement, all divisions together, because errors are
+    autocorrelated in time and shared across divisions on shock days.
+
+    Args:
+        results: Output of ``rolling_origin`` holding both models.
+        model: Model whose MAE is compared.
+        reference: Model it is compared against.
+        n_boot: Number of bootstrap resamples.
+        seed: Seed of the NumPy generator.
+        block: Resampling unit; only ISO ``week`` is supported.
+
+    Returns:
+        ``model``, ``reference``, ``mae_model``, ``mae_reference``, ``diff``
+        (MAE of ``model`` minus MAE of ``reference``), ``ci_low`` and
+        ``ci_high`` (95% percentile interval of the difference) and
+        ``n_blocks``.
+
+    Raises:
+        ValueError: If ``block`` is not ``week`` or no rows pair up.
+    """
+    if block != "week":
+        msg = f"block must be 'week', got {block!r}"
+        raise ValueError(msg)
+    keys = ["issue_date", "DIVISION"]
+
+    def errors(name: str) -> pl.DataFrame:
+        return results.filter(
+            pl.col("model") == name, pl.col("y_true").is_not_null()
+        ).select(*keys, "target_start", (pl.col("y_pred") - pl.col("y_true")).abs())
+
+    paired = (
+        errors(model)
+        .rename({"y_pred": "err_model"})
+        .join(
+            errors(reference).drop("target_start").rename({"y_pred": "err_ref"}),
+            on=keys,
+        )
+        .with_columns(
+            week=pl.col("target_start").dt.iso_year() * 100
+            + pl.col("target_start").dt.week()
+        )
+    )
+    if paired.is_empty():
+        msg = f"no scored rows shared by {model} and {reference}"
+        raise ValueError(msg)
+    # Sorted so a seed always draws the same weeks (group_by order is random).
+    blocks = (
+        paired.group_by("week")
+        .agg(
+            model=pl.col("err_model").sum(),
+            ref=pl.col("err_ref").sum(),
+            count=pl.len(),
+        )
+        .sort("week")
+    )
+    sum_model, sum_ref, count = (
+        blocks[c].to_numpy().astype(np.float64) for c in ("model", "ref", "count")
+    )
+    # Each resample draws as many weeks as there are; weeks hold different row
+    # counts, so the difference is a ratio of resampled sums.
+    draws = np.random.default_rng(seed).integers(
+        0, blocks.height, size=(n_boot, blocks.height)
+    )
+    boot = (sum_model[draws] - sum_ref[draws]).sum(axis=1) / count[draws].sum(axis=1)
+    ci_low, ci_high = np.percentile(boot, [2.5, 97.5])
+    mae_model = float(sum_model.sum() / count.sum())
+    mae_ref = float(sum_ref.sum() / count.sum())
+    return {
+        "model": model,
+        "reference": reference,
+        "mae_model": mae_model,
+        "mae_reference": mae_ref,
+        "diff": mae_model - mae_ref,
+        "ci_low": float(ci_low),
+        "ci_high": float(ci_high),
+        "n_blocks": blocks.height,
+    }
 
 
 def select_window(results: pl.DataFrame, prefix: str = "same_wd_") -> str:
