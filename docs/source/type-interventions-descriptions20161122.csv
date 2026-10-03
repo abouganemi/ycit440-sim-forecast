@@ -1,0 +1,171 @@
+INCIDENT_TYPE_DESCRIPTION,Description
+10-22 avec feu,Service non requis pour une intervention dans un bâtiment avec début d'incendie
+10-22 pour appel aéroport,Service non requis pour une intervention à l'aéroport
+10-22 PR effon de structure,Service non requis pour intervention combinée premier répondant et sauvetage en effondrement de structure
+10-22 PR effon de tranché,Service non requis pour intervention combinée premier répondant et sauvetage en effondrement de tranchée
+10-22 PR impliquant 10-43,Service non requis pour intervention combinée premier répondant et intervention impliquant une matière dangereuse
+10-22 PR sauvetage en hauteur,service non requis pour intervention combinée premier répondant sauvetage en hauteur
+10-22 PR sauvetage tech. clos,Service non requis pour intervention combinée premier répondant et sauvetage en espace clos
+10-22 sans feu,Service non requis pour une intervention bâtiment
+Ac.s.vict. sfeu train/métro ,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Ac.véh./1R/s.v./bat/29B/D,Intervention combinée premier répondant et accident de voiture sans victime captive dans un bâtiment
+Ac.véh./1R/s.v./ext/29B/D,Intervention combinée premier répondant et accident de voiture sans victime captive sur la rue
+Ac.véh./1R/s.v./pont/29B/D,Intervention combinée premier répondant et accident de voiture sans victime captive sur un pont
+Ac.véh./1R/s.v./rail/29B/D,Intervention combinée premier répondant et accident sans victime captive impliquant un train
+Ac.véh./1R/s.v./V.R./29B/D,Intervention combinée premier répondant et accident de voiture sans victime captive sur voie rapide
+Ac.véh./1R/v./rail:29D F7/DES,Intervention combinée premier répondant et accident avec victime captive impliquant un train
+Ac.véh./s.v./tun/29B/D F7/MOU,Intervention combinée premier répondant et accident de voiture sans victime captive dans un tunnel
+Ac.vic. feu train/métro F7/DES,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. sans vict. av. feu - ext.,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. sans vict. av. feu-tunnel,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. sans vict. sfeu - pont,Accident sans victime feu - pont
+Acc. sans vict. sfeu bâtiment,Accident sans victime feu bâtiment
+Acc. sans victime sfeu - ext.,Accident de véhicule sans victime coincée sur la rue
+Acc. sans victime sfeu  tunnel,Accident véhicule sans victime coincée dans un tunnel
+Acc. sans victime sfeu - v.r,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. s-vict. av. feu - pont,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. s-vict. av. feu - v.r.,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. s-vict. av. feu-bâtiment,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. s-vict. feu - train/métro,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. véh victime sfeu - (ext.),Accident de véhicule avec victime coincée dans sur la rue
+Acc. vict. feu - tunnel F7/MOU,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. vict. sfeu tunnel F7/MOU,Accident de véhicule avec victime coincée dans un tunnel
+Acc. vict.convoi (train/métro),Accident victime convoi (train/métro)
+Acc. victime feu - bâtiment,Accident victime feu - bâtiment
+Acc. victime feu - pont,Accident sans victime feu - pont
+Acc. victime feu - voie rapide,Accident de véhicule avec victime coincée et feu sur la voie rapide
+Acc. victime feu ext.,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Acc. victime sfeu - bâtiment,Accident de véhicule avec victime coincée dans un bâtiment
+Acc. victime sfeu - pont,Accident de véhicule avec victime coincée avec feu sur un pont
+Acc. victime sfeu - voie rap.,Accident de véhicule avec victime coincée sur la voie rapide
+Acc.véh/1rép/vict/bat 29D04,Intervention combinée premier répondant et accident de voiture avec victime captive dans un bâtiment
+Acc.véh/1rép/vict/ext 29D04,Intervention combinée premier répondant et accident de voiture avec victime captive sur la rue
+Acc.véh/1rép/vict/pont 29D04,Intervention combinée premier répondant et accident de voiture avec victime captive sur un pont
+Acc.véh/1rép/vict/tun 29D04 F7,Intervention combinée premier répondant et accident de voiture avec victime captive dans un tunnel
+Acc.véh/1rép/vict/v.r. 29D04,Intervention combinée premier répondant et accident de voiture avec victime captive sur la voie rapide
+Aéroport 10-07,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Aéroport 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Agravation pos./Autre que BAT,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Aide à un citoyen,Aide à un citoyen
+Alarme détection / intrusion,Alarme détection / intrusion
+Alarme privé ou locale,Alarme privé ou locale
+Alarme vérification,Alarme vérification
+Alerte à la bombe,Alerte à la bombe
+Aliments surchauffés,Aliments surchauffés
+Appel Cie détection CO F7/CO,Alarme détecteur provenant d'une compagnie d'alarme
+Appel de Cie de détection,Appel de Cie de détection
+Appel de cie détection - GAZ,Appel de cie détection - GAZ
+Ascenseur,Ascenseur
+Assistance serv. muni.,Assistance service municipale
+Avertisseur - gaz F7/GAZ,"Alarme détecteur provenant d'un citoyen, d'une entreprise ou de la sécurité d'une entreprise"
+Avertisseur de CO,Avertisseur de CO
+Barricadage,Barricadage
+Cinquième alerte/autre que BAT,Situation s'est aggravée acheminer les ressources prévues poru ce niveau d'alerte pour une intervention autre que Bâtiment
+Déchets en feu,Déchets en feu
+Dégag bat./1rép - 22D02,Intervention combinée premier répondant et victime captive ailleurs que ans un ascenseur ou une voiture
+Dégagement bâtiment,Dégagement bâtiment
+Deuxième alerte/autre que BAT,Situation s'est aggravée acheminer les ressources prévues poru ce niveau d'alerte pour une intervention autre que Bâtiment
+Eff.struct lors incendie/10-70,Effondrement de structure avec victime survenue au cours d'un incendie
+Entraide,Entraide
+Explosion,Explosion
+Fausse alerte 10-19,Appel malveillant
+Feu / 2e Alerte,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour un feu de bâtiment
+Feu / 3e Alerte,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour un feu de bâtiment
+Feu / 4e Alerte,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour un feu de bâtiment
+Feu / 5e Alerte,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour un feu de bâtiment
+Feu / Agravation possible,Feu / Agravation possible
+Feu d'auto (voie rapide),Feu d'auto (voie rapide)
+Feu de bâtiment,Feu de bâtiment
+Feu de champ *,Feu de champ 
+Feu de cheminée *,Feu de cheminée 
+Feu de cuisson,Feu de cuisson
+Feu de nature électrique,Feu de nature électrique
+Feu de navire/bâteau,Feu de navire/bateau
+Feu de véhicule extérieur,Feu de véhicule extérieur
+Feu de véhicule intérieur,Feu de véhicule intérieur
+Feu de véhicule sur pont,Feu de véhicule sur pont
+feu de véhicule tunnel F7/MOU,Feu de véhicule dans un tunnel
+Feu véh. convoi (train/métro),Feu véhicule convoi (train/métro)
+Fuite de bonbonne de propane,Fuite de bonbonne de propane
+Fuite ext.:hydrocar. liq. div.,Fuite d'hydrocarbure à l'extérieur
+Fuite gaz nat 10-07 F7/2GAZ,Intervention nécessaire pour une fuite de gaz naturel
+Fuite gaz naturel 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Fuite gaz naturel 10-12,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Fuite gaz naturel 10-22,Service non requis pour une fuite de gaz naturelle
+Fuite int.:hydrocar. liq. div.,Fuite d'hydrocarbure à l'intérieur
+Fumée - puit d'accès,Fumée - puit d'accès
+Fumigation F7/GAZ,Fumigation
+Incendie de fondoir à goudron,Incendie de fondoir à goudron
+INCIDENT CONTRÔLE RAFF/CH.FER ,Vérification d'intervention contrôlée dans raffinerie ou sur voie ferrée 
+Inondation,Inondation
+INT. POLICIERE SANS URGENCE,Intervention policière sans urgence
+Interv. aérogare ou bâtiment,Intervention aérogare ou bâtiment
+Interv. niveau/pistes +P,Intervention à l'aéroport du côté des pistes d'atterrissage
+INTERVENTION POLICIERE URGENTE,Intervention policière urgente
+Matières dangereuses / 10-07,Intervention nécessaire intervention impliquant matière dangereuse
+Matières dangereuses / 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Matières dangereuses / 10-22,Service non requis pour une intervention - matière dangereuse
+Métro bâtiment /10-22 avec feu,Service non requis  dans le métro avec feu
+Métro bâtiment /10-22 sans feu,Service non requis dans le métro dans feu
+Odeur suspecte - gaz,Odeur suspecte - gaz
+Pers. en détresse sur pont,Personne en détresse sur pont
+PR 10-07 effon structure,Intervention nécessaire combinée premier répondant et sauvetage en effondrement de structure
+PR 10-07 effon tranchée,Intervention nécessaire combinée premier répondant et sauvetage en effondrement de tranchée
+PR 10-07 espace clos,Intervention nécessaire combinée premier répondant et sauvetage en espace clos
+PR 10-07 impliquant 10-43,Intervention nécessaire combinée premier répondant et intervention impliquant une matière dangereuse
+PR 10-07 naut. plan d'eau ext.,Intervention nécessaire combinée premier répondant et sauvetage nautique plan d'eau extérieur
+PR 10-07 nautique. intérieur,Intervention nécessaire combinée premier répondant et sauvetage nautique sur plan d'eau intérieur 
+PR 10-07 nautique-glace,Intervention nécessaire combinée premier répondant et sauvetage nautique sur plan d'eau glacée
+PR 10-07 Sauvetage en hauteur,Intervention nécessaire combinée premier répondant et sauvetage en hauteur 
+PR Détresse sur un pont,Premier répondant Détresse sur un pont
+PR effon de tranchée,Premier répondant effondrement de tranchée
+PR espace clos,Premier répondant espace clos
+PR impliquant 10-43,Intervention combinée premier répondant et intervention impliquant une matière dangereuse
+PR nautique plan d'eau ext.,Premier Répondant nautique plan d'eau extérieur
+PR nautique-glace,Premier répondant nautique-glace
+PR sauv. tech. effon structure,Premier répondant sauvetage technique effondrement structure
+PR sauvetage en hauteur,Premier répondant sauvetage en hauteur
+PR sauvetage naut plan eau int,Premier répondant sauvetage nautique plan d'eau intérieur
+Premier répondant,Premier répondant
+Première alerte/autre que BAT,Intervention nécessaire pour une intervention autre que feu de bâtiment
+Problèmes électriques,Problèmes électriques
+Protection par bâche,Protection par bâche
+Quatrième alerte/autre que BAT,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour une intervention autre que Bâtiment
+Sauv. esp. clo / Appel initial,Sauvetage espace clos / Appel initial
+Sauv. espace clos / 10-07,Intervention nécessaire pour un sauvetage en espace clos
+Sauv. espace clos / 10-09,Risque d'aggravation possible pour une intervention - sauvetage espace clos
+Sauv. espace clos / 10-22,Service non requis pour une intervention - sauvetage espace clos
+Sauv. Hauteur J.Cartier/naut,Sauvetage Hauteur pont Jacques Cartier/nautique
+Sauv. naut. p.e. ext./ 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauv. naut.\surfaces glacées,Sauvetage nautique\surfaces glacées
+Sauv. nautique p.e. extérieurs,Sauvetage nautique sur le fleuve St-Laurent et la rivière des prairies
+Sauv. nautique p.e. intérieurs,"Sauvetage nautique sur plan d'eau sur l'île de Montréal (canal de l'aqueduc, canal Lachine, lacs)"
+Sauv. nautique p.e. intérieurs,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauv. nautique Zone 1,Sauvetage nautique sur le fleuve St-Laurent entre le pont Victoria et l'Est de l'île
+Sauv. nautique Zone 2,Sauvetage nautique sur le fleuve St-Laurent entre le pont Victoria le pont Honoré-Mercier
+Sauv. nautique Zone 3,Sauvetage nautique sur le fleuve entre Lachine et Pointe-Claire
+Sauv. nautique Zone 4,Sauvetage nautique sur le fleuve entre Pointe-Claire et le pont Galipeau
+Sauv. nautique Zone 5,Sauvetage nautique entre la pont Galipeau et les rapides du Cheval Blanc sur la rivière des Prairies
+Sauv. nautique Zone 6,Sauvetage nautique entre les rapides du cheval blanc et le barrage Hydro-Électrique sur la rivière des Prairies
+Sauv. nautique Zone 7,Sauvetage nautique entre le barrage Hydro-Électrique et la pointe Est de l'île de Montréal sur la rivière des Prairies
+Sauv.effon.struc. 10-07 F7/GAZ,"Intervention nécessaire, acheminer les ressources pour un effondrement de structure"
+Sauv.effon.struc. 10-09 F7/GAZ,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauv.effon.struc. 10-22,Service non requis pour un effondrement de structure
+Sauv.effon.structure F7/GAZ,Effondrement de structure
+Sauv.effon.tranchée,Effondrement de tranchée
+Sauv.effon.tranchée 10-07,"Intervention nécessaire, acheminer les ressources pour un effondrement de tranchée"
+Sauv.effon.tranchée 10-09 +CDI,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauv.effon.tranchée 10-22,Service non requis pour un effondrement de tranchée
+Sauvetage en hauteur / 10-07,Intervention nécessaire pour un sauvetage en hauteur
+Sauvetage en hauteur / 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauvetage en hauteur / 10-22,Service non requis pour une intervention - sauvetage en hauteur
+Sauvetage naut. glace/ 10-07,Intervention nécessaire pour un sauvetage sur plan d'eau glacée
+Sauvetage naut. glace/ 10-09,Type qui n'est plus utilisé à la suite de la mise à jour de l'algorithme en 2016
+Sauvetage nautique/ 10-07,Intervention nécessaire sauvetage nautique
+Senteur de feu à l'extérieur,Senteur de feu à l'extérieur
+Structure dangereuse,Structure dangereuse
+Surchauffe - véhicule,Surchauffe - véhicule
+Surplus d'huile,Surplus d'huile
+Transbordement mat. explos,Transbordement matière explosive
+Troisième alerte/autre que BAT,Situation s'est aggravée acheminer les ressources prévues pour ce niveau d'alerte pour une intervention autre que Bâtiment
+Vérif.sauv.naut.\surf.glacées,Vérification sur plan d'eau glacée

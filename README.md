@@ -21,6 +21,14 @@ uv sync --all-groups --locked
 
 Notebook outputs are stripped by the `nbstripout` hook. Open notebooks in VS Code and pick the `.venv` kernel.
 
+Exception: `notebooks/01_eda.ipynb` keeps its outputs so the team can read it without the data or an environment. It opts in with `"keep_output": true` in its notebook metadata (nbstripout honours it) and is exempt from the 500 KB `check-added-large-files` limit. To refresh the outputs, re-run it end to end:
+
+```bash
+uv run --with nbconvert jupyter nbconvert --to notebook --execute --inplace notebooks/01_eda.ipynb
+```
+
+Keep this for public-data exploration only; notebooks that touch private or production data must stay stripped.
+
 ## Data
 
 ```bash

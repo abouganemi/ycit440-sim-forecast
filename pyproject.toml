@@ -26,10 +26,20 @@ dev = [
     "pytest-cov>=7.1.0",
     "ruff>=0.16.9",
 ]
+eda = [
+    "matplotlib>=3.11.2",
+    "seaborn>=0.13.2",
+    "statsmodels>=0.15.0",
+]
 gpu = [
     "torch>=2.14.0",
     "triton-rocm>=3.8.0",
 ]
+
+[tool.ruff]
+# docs/ holds archival scripts copied from the framing stage; they are kept verbatim.
+extend-exclude = ["docs"]
+force-exclude = true # also skip them when pre-commit passes file names explicitly
 
 [tool.ruff.lint]
 select = [
@@ -66,6 +76,8 @@ convention = "google"
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
+# Setting exclude replaces the defaults, so the hidden-dir and cache patterns are repeated.
+exclude = ["docs", "**/.*", "**/__pycache__", "**/node_modules"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -82,7 +94,7 @@ skip_covered = true
 
 [tool.uv]
 environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
-default-groups = ["dev", "gpu"]
+default-groups = ["dev", "eda", "gpu"]
 
 [[tool.uv.index]]
 name = "pytorch-rocm"

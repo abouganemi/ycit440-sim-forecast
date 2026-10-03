@@ -289,3 +289,6 @@ $RECYCLE.BIN/
 !/data/manifest.json
 /models/**
 !/models/.gitkeep
+
+# Local-only notes for Claude sessions; never committed.
+/claude_handoff/

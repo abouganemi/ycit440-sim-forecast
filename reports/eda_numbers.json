@@ -1,0 +1,1110 @@
+{
+  "anomalies": {
+    "by_division": [
+      {
+        "DIVISION": 1,
+        "anomalies": 30,
+        "days": 2458,
+        "max_z": 88.8,
+        "pct": 1.22,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 2,
+        "anomalies": 19,
+        "days": 2458,
+        "max_z": 29.1,
+        "pct": 0.77,
+        "unusually_low": 3
+      },
+      {
+        "DIVISION": 3,
+        "anomalies": 26,
+        "days": 2458,
+        "max_z": 53.4,
+        "pct": 1.06,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 4,
+        "anomalies": 21,
+        "days": 2458,
+        "max_z": 37.3,
+        "pct": 0.85,
+        "unusually_low": 1
+      },
+      {
+        "DIVISION": 5,
+        "anomalies": 21,
+        "days": 2458,
+        "max_z": 46.9,
+        "pct": 0.85,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 6,
+        "anomalies": 17,
+        "days": 2458,
+        "max_z": 20.0,
+        "pct": 0.69,
+        "unusually_low": 3
+      }
+    ],
+    "method": "robust STL per division (period 7, trend 29), MAD-scaled residual",
+    "z_threshold": 6.0
+  },
+  "anomaly_shared_shock_days": [
+    {
+      "date": "2023-04-06",
+      "divisions": 6,
+      "n": 1712,
+      "pct_sans_feu": 72.6,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2024-04-04",
+      "divisions": 6,
+      "n": 736,
+      "pct_sans_feu": 53.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2021-12-11",
+      "divisions": 5,
+      "n": 550,
+      "pct_sans_feu": 54.0,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-02-04",
+      "divisions": 5,
+      "n": 697,
+      "pct_sans_feu": 41.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-02-05",
+      "divisions": 5,
+      "n": 728,
+      "pct_sans_feu": 49.0,
+      "top_type": "Inondation",
+      "weekday": "Sun"
+    },
+    {
+      "date": "2023-04-05",
+      "divisions": 5,
+      "n": 950,
+      "pct_sans_feu": 64.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Wed"
+    },
+    {
+      "date": "2023-04-07",
+      "divisions": 5,
+      "n": 930,
+      "pct_sans_feu": 52.5,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Fri"
+    },
+    {
+      "date": "2023-07-13",
+      "divisions": 5,
+      "n": 701,
+      "pct_sans_feu": 50.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2026-03-17",
+      "divisions": 5,
+      "n": 513,
+      "pct_sans_feu": 47.3,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Tue"
+    },
+    {
+      "date": "2021-12-12",
+      "divisions": 4,
+      "n": 499,
+      "pct_sans_feu": 52.7,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sun"
+    },
+    {
+      "date": "2023-04-08",
+      "divisions": 4,
+      "n": 639,
+      "pct_sans_feu": 41.0,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-06-01",
+      "divisions": 4,
+      "n": 524,
+      "pct_sans_feu": 26.2,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2020-06-11",
+      "divisions": 3,
+      "n": 324,
+      "pct_sans_feu": 69.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2022-06-16",
+      "divisions": 3,
+      "n": 593,
+      "pct_sans_feu": 42.7,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2024-08-10",
+      "divisions": 3,
+      "n": 600,
+      "pct_sans_feu": 45.5,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2025-07-13",
+      "divisions": 3,
+      "n": 550,
+      "pct_sans_feu": 35.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sun"
+    }
+  ],
+  "append": {
+    "date_overlap": false,
+    "key_overlap": 0,
+    "same_header": true
+  },
+  "baseline_preview_2024": {
+    "bias_all": {
+      "plain_28d": -0.18,
+      "same_wd_13w": -0.39,
+      "same_wd_26w": -0.69,
+      "same_wd_4w": -0.17,
+      "same_wd_52w": -0.63,
+      "same_wd_8w": -0.22
+    },
+    "mae_all": {
+      "plain_28d": 8.03,
+      "same_wd_13w": 8.16,
+      "same_wd_26w": 8.16,
+      "same_wd_4w": 8.89,
+      "same_wd_52w": 8.3,
+      "same_wd_8w": 8.26
+    },
+    "mae_by_division": [
+      {
+        "DIVISION": 1,
+        "plain_28d": 5.92,
+        "same_wd_13w": 5.94,
+        "same_wd_26w": 6.01,
+        "same_wd_4w": 6.58,
+        "same_wd_52w": 6.23,
+        "same_wd_8w": 6.01
+      },
+      {
+        "DIVISION": 2,
+        "plain_28d": 8.04,
+        "same_wd_13w": 8.27,
+        "same_wd_26w": 8.21,
+        "same_wd_4w": 8.85,
+        "same_wd_52w": 8.43,
+        "same_wd_8w": 8.42
+      },
+      {
+        "DIVISION": 3,
+        "plain_28d": 9.73,
+        "same_wd_13w": 9.95,
+        "same_wd_26w": 9.61,
+        "same_wd_4w": 11.05,
+        "same_wd_52w": 9.81,
+        "same_wd_8w": 10.05
+      },
+      {
+        "DIVISION": 4,
+        "plain_28d": 7.88,
+        "same_wd_13w": 8.21,
+        "same_wd_26w": 8.17,
+        "same_wd_4w": 9.08,
+        "same_wd_52w": 8.25,
+        "same_wd_8w": 8.31
+      },
+      {
+        "DIVISION": 5,
+        "plain_28d": 8.67,
+        "same_wd_13w": 8.66,
+        "same_wd_26w": 8.81,
+        "same_wd_4w": 9.54,
+        "same_wd_52w": 8.95,
+        "same_wd_8w": 8.89
+      },
+      {
+        "DIVISION": 6,
+        "plain_28d": 7.91,
+        "same_wd_13w": 7.93,
+        "same_wd_26w": 8.12,
+        "same_wd_4w": 8.23,
+        "same_wd_52w": 8.13,
+        "same_wd_8w": 7.91
+      }
+    ]
+  },
+  "calendar": {
+    "days": 2459,
+    "missing": [
+      "2024-12-31"
+    ],
+    "observed": 2458
+  },
+  "caserne_nesting": {
+    "casernes": 66,
+    "casernes_in_several_divisions": 43,
+    "casernes_in_several_divisions_1_6": 30,
+    "rows_in_modal_division": 0.9463131551459945
+  },
+  "covid_pr_gap": {
+    "days": 56,
+    "first": "2020-04-07",
+    "last": "2020-07-07"
+  },
+  "date_only_rows": [
+    {
+      "len": 1,
+      "source_file": "donneesouvertes-interventions-sim.csv"
+    },
+    {
+      "len": 7,
+      "source_file": "donneesouvertes-interventions-sim2020.csv"
+    }
+  ],
+  "division_0": {
+    "by_year": [
+      {
+        "len": 90,
+        "year": 2020
+      },
+      {
+        "len": 100,
+        "year": 2021
+      },
+      {
+        "len": 100,
+        "year": 2022
+      },
+      {
+        "len": 87,
+        "year": 2023
+      },
+      {
+        "len": 89,
+        "year": 2024
+      },
+      {
+        "len": 75,
+        "year": 2025
+      },
+      {
+        "len": 59,
+        "year": 2026
+      }
+    ],
+    "rows": 600,
+    "top_groups": [
+      {
+        "DESCRIPTION_GROUPE": "SANS FEU",
+        "count": 297
+      },
+      {
+        "DESCRIPTION_GROUPE": "1-REPOND",
+        "count": 247
+      },
+      {
+        "DESCRIPTION_GROUPE": null,
+        "count": 32
+      },
+      {
+        "DESCRIPTION_GROUPE": "AUTREFEU",
+        "count": 22
+      },
+      {
+        "DESCRIPTION_GROUPE": "FAU-ALER",
+        "count": 2
+      }
+    ]
+  },
+  "duplicates": {
+    "full_rows": 0,
+    "nbr_only": 614582,
+    "year_nbr": 0
+  },
+  "dynamics_2021_2024": [
+    {
+      "acf_1": 0.586,
+      "acf_28": 0.055,
+      "acf_3": 0.241,
+      "acf_7": 0.071,
+      "adf_p": 0.0,
+      "division": 1,
+      "kpss_p": 0.01,
+      "mean": 29.5,
+      "var_over_mean": 7.0
+    },
+    {
+      "acf_1": 0.411,
+      "acf_28": 0.058,
+      "acf_3": 0.186,
+      "acf_7": 0.168,
+      "adf_p": 0.0,
+      "division": 2,
+      "kpss_p": 0.01,
+      "mean": 55.2,
+      "var_over_mean": 3.43
+    },
+    {
+      "acf_1": 0.514,
+      "acf_28": 0.058,
+      "acf_3": 0.2,
+      "acf_7": 0.151,
+      "adf_p": 0.0,
+      "division": 3,
+      "kpss_p": 0.01,
+      "mean": 62.9,
+      "var_over_mean": 4.96
+    },
+    {
+      "acf_1": 0.355,
+      "acf_28": 0.012,
+      "acf_3": 0.161,
+      "acf_7": 0.119,
+      "adf_p": 0.0,
+      "division": 4,
+      "kpss_p": 0.01,
+      "mean": 61.6,
+      "var_over_mean": 2.77
+    },
+    {
+      "acf_1": 0.474,
+      "acf_28": 0.065,
+      "acf_3": 0.224,
+      "acf_7": 0.152,
+      "adf_p": 0.0,
+      "division": 5,
+      "kpss_p": 0.01,
+      "mean": 58.9,
+      "var_over_mean": 4.05
+    },
+    {
+      "acf_1": 0.559,
+      "acf_28": 0.328,
+      "acf_3": 0.384,
+      "acf_7": 0.428,
+      "adf_p": 0.0013,
+      "division": 6,
+      "kpss_p": 0.01,
+      "mean": 43.9,
+      "var_over_mean": 3.54
+    }
+  ],
+  "files": [
+    {
+      "bytes": 76744488,
+      "first": "2020-01-01 00:01:37.000000",
+      "last": "2024-12-30 23:56:04.000000",
+      "rows": 539203,
+      "sha256_12": "843a8531ae26",
+      "source_file": "donneesouvertes-interventions-sim2020.csv"
+    },
+    {
+      "bytes": 30573515,
+      "first": "2025-01-01 00:02:31.000000",
+      "last": "2026-09-24 23:59:29.000000",
+      "rows": 215210,
+      "sha256_12": "7948d34c5141",
+      "source_file": "donneesouvertes-interventions-sim.csv"
+    }
+  ],
+  "geo": {
+    "distinct_points": 54308,
+    "lat_max": 45.703664,
+    "lat_min": 45.402657,
+    "lon_max": -73.479125,
+    "lon_min": -73.983189,
+    "rows_on_shared_points": 0.9899179892181074
+  },
+  "grains": [
+    {
+      "cells": 2458,
+      "grain": "citywide x day",
+      "mean": 306.9,
+      "median": 307.0,
+      "pct_le_5": 0.0,
+      "pct_zero": 0.0,
+      "var_over_mean": 18.7
+    },
+    {
+      "cells": 14748,
+      "grain": "division x day",
+      "mean": 51.1,
+      "median": 53.0,
+      "pct_le_5": 0.14,
+      "pct_zero": 0.0,
+      "var_over_mean": 7.2
+    },
+    {
+      "cells": 162228,
+      "grain": "caserne x day",
+      "mean": 4.7,
+      "median": 4.0,
+      "pct_le_5": 65.04,
+      "pct_zero": 8.96,
+      "var_over_mean": 2.8
+    }
+  ],
+  "groups": [
+    {
+      "g": "1-REPOND",
+      "incidents": 462516,
+      "max_units": 26,
+      "mean_units": 1.0882386019551864,
+      "p99_units": 3.0,
+      "pct_incidents": 61.308063355217904,
+      "pct_vehicles": 36.33570873545222,
+      "vehicles": 503158
+    },
+    {
+      "g": "SANS FEU",
+      "incidents": 158434,
+      "max_units": 91,
+      "mean_units": 2.6368393147935416,
+      "p99_units": 10.0,
+      "pct_incidents": 21.000963663139423,
+      "pct_vehicles": 30.169027144289068,
+      "vehicles": 417765
+    },
+    {
+      "g": "Alarmes-incendies",
+      "incidents": 103949,
+      "max_units": 27,
+      "mean_units": 3.0465516743787817,
+      "p99_units": 6.0,
+      "pct_incidents": 13.778792253049723,
+      "pct_vehicles": 22.869576269472855,
+      "vehicles": 316686
+    },
+    {
+      "g": "AUTREFEU",
+      "incidents": 18973,
+      "max_units": 31,
+      "mean_units": 1.6857639803931903,
+      "p99_units": 7.0,
+      "pct_incidents": 2.5149354531271335,
+      "pct_vehicles": 2.309734334333756,
+      "vehicles": 31984
+    },
+    {
+      "g": "INCENDIE",
+      "incidents": 8389,
+      "max_units": 275,
+      "mean_units": 11.553105256884015,
+      "p99_units": 60.0,
+      "pct_incidents": 1.1119903819260804,
+      "pct_vehicles": 6.999035203517174,
+      "vehicles": 96919
+    },
+    {
+      "g": "(blank)",
+      "incidents": 1788,
+      "max_units": 35,
+      "mean_units": 9.65268456375839,
+      "p99_units": 19.0,
+      "pct_incidents": 0.2370054598741008,
+      "pct_vehicles": 1.2463639593630031,
+      "vehicles": 17259
+    },
+    {
+      "g": "FAU-ALER",
+      "incidents": 357,
+      "max_units": 12,
+      "mean_units": 2.5546218487394956,
+      "p99_units": 7.0,
+      "pct_incidents": 0.04732155994130536,
+      "pct_vehicles": 0.06586035870786598,
+      "vehicles": 912
+    },
+    {
+      "g": "NOUVEAU",
+      "incidents": 7,
+      "max_units": 16,
+      "mean_units": 9.285714285714286,
+      "p99_units": 16.0,
+      "pct_incidents": 0.0009278737243393208,
+      "pct_vehicles": 0.0046939948640474655,
+      "vehicles": 65
+    }
+  ],
+  "median_polish": {
+    "division_effect_pct": {
+      "1": -50.6,
+      "2": -3.2,
+      "3": 9.1,
+      "4": 5.9,
+      "5": 3.3,
+      "6": -22.6
+    },
+    "overall_per_day": 57.9,
+    "residual_2026_pct": {
+      "1": 1.6,
+      "2": 1.4,
+      "3": -0.3,
+      "4": -9.6,
+      "5": -1.8,
+      "6": 44.1
+    },
+    "shared_share_of_variation": 0.885
+  },
+  "nulls": {
+    "DESCRIPTION_GROUPE": 1788,
+    "NOMBRE_UNITES": 156
+  },
+  "publication": {
+    "lag_days": 2,
+    "last_record": "2026-09-24 23:59:29",
+    "retrieved": "2026-09-26"
+  },
+  "published_share": [
+    {
+      "high_range": 0,
+      "max_nbr_main": 88771,
+      "published": 83167,
+      "share_of_max_nbr": 0.9368712755291706,
+      "share_of_sim_total": null,
+      "sim_reported": null,
+      "year": 2020
+    },
+    {
+      "high_range": 0,
+      "max_nbr_main": 108937,
+      "published": 101538,
+      "share_of_max_nbr": 0.9320800095468023,
+      "share_of_sim_total": null,
+      "sim_reported": null,
+      "year": 2021
+    },
+    {
+      "high_range": 109,
+      "max_nbr_main": 118786,
+      "published": 111552,
+      "share_of_max_nbr": 0.9391005674069335,
+      "share_of_sim_total": 0.9380739345420297,
+      "sim_reported": 118916,
+      "year": 2022
+    },
+    {
+      "high_range": 30,
+      "max_nbr_main": 128993,
+      "published": 121514,
+      "share_of_max_nbr": 0.9420201096183514,
+      "share_of_sim_total": 0.9426851406494856,
+      "sim_reported": 128902,
+      "year": 2023
+    },
+    {
+      "high_range": 9,
+      "max_nbr_main": 129523,
+      "published": 121432,
+      "share_of_max_nbr": 0.9375323301652988,
+      "share_of_sim_total": 0.9353730492520528,
+      "sim_reported": 129822,
+      "year": 2024
+    },
+    {
+      "high_range": 28,
+      "max_nbr_main": 140402,
+      "published": 130791,
+      "share_of_max_nbr": 0.9315465591658239,
+      "share_of_sim_total": null,
+      "sim_reported": null,
+      "year": 2025
+    },
+    {
+      "high_range": 63,
+      "max_nbr_main": 90961,
+      "published": 84419,
+      "share_of_max_nbr": 0.928079066852827,
+      "share_of_sim_total": null,
+      "sim_reported": null,
+      "year": 2026
+    }
+  ],
+  "residual_correlation": {
+    "divisions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "matrix": [
+      [
+        1.0,
+        0.44,
+        0.64,
+        0.52,
+        0.56,
+        0.14
+      ],
+      [
+        0.44,
+        1.0,
+        0.49,
+        0.39,
+        0.46,
+        0.32
+      ],
+      [
+        0.64,
+        0.49,
+        1.0,
+        0.52,
+        0.61,
+        0.26
+      ],
+      [
+        0.52,
+        0.39,
+        0.52,
+        1.0,
+        0.56,
+        0.23
+      ],
+      [
+        0.56,
+        0.46,
+        0.61,
+        0.56,
+        1.0,
+        0.34
+      ],
+      [
+        0.14,
+        0.32,
+        0.26,
+        0.23,
+        0.34,
+        1.0
+      ]
+    ],
+    "mean_off_diagonal": 0.432
+  },
+  "shift_2026_vs_2025": [
+    {
+      "2025": 26,
+      "2026": 20,
+      "DIVISION": 1,
+      "pct_change": -23.1,
+      "pr": null
+    },
+    {
+      "2025": 2988,
+      "2026": 3466,
+      "DIVISION": 1,
+      "pct_change": 16.0,
+      "pr": false
+    },
+    {
+      "2025": 5599,
+      "2026": 4041,
+      "DIVISION": 1,
+      "pct_change": -27.8,
+      "pr": true
+    },
+    {
+      "2025": 57,
+      "2026": 57,
+      "DIVISION": 2,
+      "pct_change": 0.0,
+      "pr": null
+    },
+    {
+      "2025": 6405,
+      "2026": 7197,
+      "DIVISION": 2,
+      "pct_change": 12.4,
+      "pr": false
+    },
+    {
+      "2025": 10284,
+      "2026": 7352,
+      "DIVISION": 2,
+      "pct_change": -28.5,
+      "pr": true
+    },
+    {
+      "2025": 77,
+      "2026": 40,
+      "DIVISION": 3,
+      "pct_change": -48.1,
+      "pr": null
+    },
+    {
+      "2025": 7851,
+      "2026": 7931,
+      "DIVISION": 3,
+      "pct_change": 1.0,
+      "pr": false
+    },
+    {
+      "2025": 10926,
+      "2026": 8209,
+      "DIVISION": 3,
+      "pct_change": -24.9,
+      "pr": true
+    },
+    {
+      "2025": 54,
+      "2026": 62,
+      "DIVISION": 4,
+      "pct_change": 14.8,
+      "pr": null
+    },
+    {
+      "2025": 5558,
+      "2026": 5490,
+      "DIVISION": 4,
+      "pct_change": -1.2,
+      "pr": false
+    },
+    {
+      "2025": 12335,
+      "2026": 8654,
+      "DIVISION": 4,
+      "pct_change": -29.8,
+      "pr": true
+    },
+    {
+      "2025": 70,
+      "2026": 52,
+      "DIVISION": 5,
+      "pct_change": -25.7,
+      "pr": null
+    },
+    {
+      "2025": 6316,
+      "2026": 6490,
+      "DIVISION": 5,
+      "pct_change": 2.8,
+      "pr": false
+    },
+    {
+      "2025": 11737,
+      "2026": 8572,
+      "DIVISION": 5,
+      "pct_change": -27.0,
+      "pr": true
+    },
+    {
+      "2025": 58,
+      "2026": 39,
+      "DIVISION": 6,
+      "pct_change": -32.8,
+      "pr": null
+    },
+    {
+      "2025": 5329,
+      "2026": 5735,
+      "DIVISION": 6,
+      "pct_change": 7.6,
+      "pr": false
+    },
+    {
+      "2025": 10001,
+      "2026": 10953,
+      "DIVISION": 6,
+      "pct_change": 9.5,
+      "pr": true
+    }
+  ],
+  "stl_citywide_2021_2024": {
+    "trend_strength": 0.325,
+    "weekly_strength": 0.062
+  },
+  "target_summary": [
+    {
+      "DIVISION": 1,
+      "days": 2458,
+      "excess_kurtosis": 245.06,
+      "max": 384,
+      "mean": 28.32,
+      "median": 28.0,
+      "min": 2,
+      "p5": 15.0,
+      "p95": 41.0,
+      "q1": 23.0,
+      "q3": 33.0,
+      "sd": 13.16,
+      "skewness": 11.02
+    },
+    {
+      "DIVISION": 2,
+      "days": 2458,
+      "excess_kurtosis": 18.0,
+      "max": 221,
+      "mean": 54.22,
+      "median": 54.0,
+      "min": 6,
+      "p5": 34.0,
+      "p95": 74.0,
+      "q1": 47.0,
+      "q3": 62.0,
+      "sd": 14.6,
+      "skewness": 1.71
+    },
+    {
+      "DIVISION": 3,
+      "days": 2458,
+      "excess_kurtosis": 62.82,
+      "max": 394,
+      "mean": 61.19,
+      "median": 61.0,
+      "min": 9,
+      "p5": 37.0,
+      "p95": 84.0,
+      "q1": 53.0,
+      "q3": 69.0,
+      "sd": 17.65,
+      "skewness": 4.02
+    },
+    {
+      "DIVISION": 4,
+      "days": 2458,
+      "excess_kurtosis": 23.7,
+      "max": 287,
+      "mean": 59.07,
+      "median": 59.0,
+      "min": 5,
+      "p5": 37.0,
+      "p95": 80.0,
+      "q1": 52.0,
+      "q3": 67.0,
+      "sd": 15.03,
+      "skewness": 1.24
+    },
+    {
+      "DIVISION": 5,
+      "days": 2458,
+      "excess_kurtosis": 47.77,
+      "max": 353,
+      "mean": 57.84,
+      "median": 57.0,
+      "min": 5,
+      "p5": 34.0,
+      "p95": 81.0,
+      "q1": 49.0,
+      "q3": 66.0,
+      "sd": 16.28,
+      "skewness": 2.87
+    },
+    {
+      "DIVISION": 6,
+      "days": 2458,
+      "excess_kurtosis": 0.96,
+      "max": 143,
+      "mean": 46.03,
+      "median": 45.0,
+      "min": 3,
+      "p5": 22.0,
+      "p95": 73.0,
+      "q1": 35.0,
+      "q3": 56.0,
+      "sd": 16.11,
+      "skewness": 0.4
+    }
+  ],
+  "timestamps": {
+    "rows_exactly_midnight": 0,
+    "rows_in_dst_gap": 0
+  },
+  "top_types": [
+    {
+      "INCIDENT_TYPE_DESC": "Premier r\u00e9pondant",
+      "count": 431986
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Appel de Cie de d\u00e9tection",
+      "count": 62348
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Alarme priv\u00e9 ou locale",
+      "count": 36915
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Aliments surchauff\u00e9s",
+      "count": 33350
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Ac.v\u00e9h./1R/s.v./ext/29B/D",
+      "count": 22046
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Probl\u00e8mes \u00e9lectriques",
+      "count": 18702
+    },
+    {
+      "INCIDENT_TYPE_DESC": "10-22 sans feu",
+      "count": 15747
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Ascenseur",
+      "count": 14446
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Inondation",
+      "count": 13804
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Aide \u00e0 un citoyen",
+      "count": 13299
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Odeur suspecte - gaz",
+      "count": 12752
+    },
+    {
+      "INCIDENT_TYPE_DESC": "D\u00e9chets en feu",
+      "count": 10223
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Acc. sans victime sfeu - ext.",
+      "count": 9405
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Structure dangereuse",
+      "count": 6443
+    },
+    {
+      "INCIDENT_TYPE_DESC": "Ac.v\u00e9h./1R/s.v./V.R./29B/D",
+      "count": 6274
+    }
+  ],
+  "type_churn": [
+    {
+      "dropped": 11,
+      "new": 10,
+      "types": 117,
+      "year": 2021
+    },
+    {
+      "dropped": 12,
+      "new": 33,
+      "types": 138,
+      "year": 2022
+    },
+    {
+      "dropped": 14,
+      "new": 19,
+      "types": 143,
+      "year": 2023
+    },
+    {
+      "dropped": 19,
+      "new": 11,
+      "types": 135,
+      "year": 2024
+    },
+    {
+      "dropped": 14,
+      "new": 10,
+      "types": 131,
+      "year": 2025
+    },
+    {
+      "dropped": 22,
+      "new": 16,
+      "types": 125,
+      "year": 2026
+    }
+  ],
+  "weekday_index_range": [
+    {
+      "DIVISION": 1,
+      "high": 1.075,
+      "low": 0.941
+    },
+    {
+      "DIVISION": 2,
+      "high": 1.055,
+      "low": 0.96
+    },
+    {
+      "DIVISION": 3,
+      "high": 1.059,
+      "low": 0.938
+    },
+    {
+      "DIVISION": 4,
+      "high": 1.027,
+      "low": 0.985
+    },
+    {
+      "DIVISION": 5,
+      "high": 1.051,
+      "low": 0.964
+    },
+    {
+      "DIVISION": 6,
+      "high": 1.091,
+      "low": 0.928
+    }
+  ],
+  "yearly_mean_per_day": [
+    {
+      "days": 366,
+      "mean_per_day": 227.2,
+      "year": 2020
+    },
+    {
+      "days": 365,
+      "mean_per_day": 278.2,
+      "year": 2021
+    },
+    {
+      "days": 365,
+      "mean_per_day": 305.6,
+      "year": 2022
+    },
+    {
+      "days": 365,
+      "mean_per_day": 332.9,
+      "year": 2023
+    },
+    {
+      "days": 365,
+      "mean_per_day": 332.7,
+      "year": 2024
+    },
+    {
+      "days": 365,
+      "mean_per_day": 358.3,
+      "year": 2025
+    },
+    {
+      "days": 267,
+      "mean_per_day": 316.2,
+      "year": 2026
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "retrieved_at": "2026-09-28T23:45:27Z",
+  "sources": {
+    "casernes-pompiers.json": "https://donnees.montreal.ca/api/3/action/package_show?id=casernes-pompiers",
+    "interventions-service-securite-incendie-montreal.json": "https://donnees.montreal.ca/api/3/action/package_show?id=interventions-service-securite-incendie-montreal",
+    "type-interventions-descriptions20161122.csv": "https://donnees.montreal.ca/dataset/2fc8a2b9-1556-410e-a118-c46e97e9f19e/resource/4f236894-3fdc-4b04-8d11-80f451ffd70d/download/type-interventions-descriptions20161122.csv"
+  }
+}
