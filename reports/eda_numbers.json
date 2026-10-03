@@ -1,4 +1,188 @@
 {
+  "anomalies": {
+    "by_division": [
+      {
+        "DIVISION": 1,
+        "anomalies": 30,
+        "days": 2458,
+        "max_z": 88.8,
+        "pct": 1.22,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 2,
+        "anomalies": 19,
+        "days": 2458,
+        "max_z": 29.1,
+        "pct": 0.77,
+        "unusually_low": 3
+      },
+      {
+        "DIVISION": 3,
+        "anomalies": 26,
+        "days": 2458,
+        "max_z": 53.4,
+        "pct": 1.06,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 4,
+        "anomalies": 21,
+        "days": 2458,
+        "max_z": 37.3,
+        "pct": 0.85,
+        "unusually_low": 1
+      },
+      {
+        "DIVISION": 5,
+        "anomalies": 21,
+        "days": 2458,
+        "max_z": 46.9,
+        "pct": 0.85,
+        "unusually_low": 0
+      },
+      {
+        "DIVISION": 6,
+        "anomalies": 17,
+        "days": 2458,
+        "max_z": 20.0,
+        "pct": 0.69,
+        "unusually_low": 3
+      }
+    ],
+    "method": "robust STL per division (period 7, trend 29), MAD-scaled residual",
+    "z_threshold": 6.0
+  },
+  "anomaly_shared_shock_days": [
+    {
+      "date": "2023-04-06",
+      "divisions": 6,
+      "n": 1712,
+      "pct_sans_feu": 72.6,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2024-04-04",
+      "divisions": 6,
+      "n": 736,
+      "pct_sans_feu": 53.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2021-12-11",
+      "divisions": 5,
+      "n": 550,
+      "pct_sans_feu": 54.0,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-02-04",
+      "divisions": 5,
+      "n": 697,
+      "pct_sans_feu": 41.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-02-05",
+      "divisions": 5,
+      "n": 728,
+      "pct_sans_feu": 49.0,
+      "top_type": "Inondation",
+      "weekday": "Sun"
+    },
+    {
+      "date": "2023-04-05",
+      "divisions": 5,
+      "n": 950,
+      "pct_sans_feu": 64.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Wed"
+    },
+    {
+      "date": "2023-04-07",
+      "divisions": 5,
+      "n": 930,
+      "pct_sans_feu": 52.5,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Fri"
+    },
+    {
+      "date": "2023-07-13",
+      "divisions": 5,
+      "n": 701,
+      "pct_sans_feu": 50.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2026-03-17",
+      "divisions": 5,
+      "n": 513,
+      "pct_sans_feu": 47.3,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Tue"
+    },
+    {
+      "date": "2021-12-12",
+      "divisions": 4,
+      "n": 499,
+      "pct_sans_feu": 52.7,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sun"
+    },
+    {
+      "date": "2023-04-08",
+      "divisions": 4,
+      "n": 639,
+      "pct_sans_feu": 41.0,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2023-06-01",
+      "divisions": 4,
+      "n": 524,
+      "pct_sans_feu": 26.2,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2020-06-11",
+      "divisions": 3,
+      "n": 324,
+      "pct_sans_feu": 69.8,
+      "top_type": "Probl\u00e8mes \u00e9lectriques",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2022-06-16",
+      "divisions": 3,
+      "n": 593,
+      "pct_sans_feu": 42.7,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Thu"
+    },
+    {
+      "date": "2024-08-10",
+      "divisions": 3,
+      "n": 600,
+      "pct_sans_feu": 45.5,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sat"
+    },
+    {
+      "date": "2025-07-13",
+      "divisions": 3,
+      "n": 550,
+      "pct_sans_feu": 35.9,
+      "top_type": "Premier r\u00e9pondant",
+      "weekday": "Sun"
+    }
+  ],
   "append": {
     "date_overlap": false,
     "key_overlap": 0,
@@ -371,6 +555,26 @@
       "vehicles": 65
     }
   ],
+  "median_polish": {
+    "division_effect_pct": {
+      "1": -50.6,
+      "2": -3.2,
+      "3": 9.1,
+      "4": 5.9,
+      "5": 3.3,
+      "6": -22.6
+    },
+    "overall_per_day": 57.9,
+    "residual_2026_pct": {
+      "1": 1.6,
+      "2": 1.4,
+      "3": -0.3,
+      "4": -9.6,
+      "5": -1.8,
+      "6": 44.1
+    },
+    "shared_share_of_variation": 0.885
+  },
   "nulls": {
     "DESCRIPTION_GROUPE": 1788,
     "NOMBRE_UNITES": 156
@@ -445,6 +649,67 @@
       "year": 2026
     }
   ],
+  "residual_correlation": {
+    "divisions": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "matrix": [
+      [
+        1.0,
+        0.44,
+        0.64,
+        0.52,
+        0.56,
+        0.14
+      ],
+      [
+        0.44,
+        1.0,
+        0.49,
+        0.39,
+        0.46,
+        0.32
+      ],
+      [
+        0.64,
+        0.49,
+        1.0,
+        0.52,
+        0.61,
+        0.26
+      ],
+      [
+        0.52,
+        0.39,
+        0.52,
+        1.0,
+        0.56,
+        0.23
+      ],
+      [
+        0.56,
+        0.46,
+        0.61,
+        0.56,
+        1.0,
+        0.34
+      ],
+      [
+        0.14,
+        0.32,
+        0.26,
+        0.23,
+        0.34,
+        1.0
+      ]
+    ],
+    "mean_off_diagonal": 0.432
+  },
   "shift_2026_vs_2025": [
     {
       "2025": 26,
@@ -577,108 +842,102 @@
     "trend_strength": 0.325,
     "weekly_strength": 0.062
   },
+  "target_summary": [
+    {
+      "DIVISION": 1,
+      "days": 2458,
+      "excess_kurtosis": 245.06,
+      "max": 384,
+      "mean": 28.32,
+      "median": 28.0,
+      "min": 2,
+      "p5": 15.0,
+      "p95": 41.0,
+      "q1": 23.0,
+      "q3": 33.0,
+      "sd": 13.16,
+      "skewness": 11.02
+    },
+    {
+      "DIVISION": 2,
+      "days": 2458,
+      "excess_kurtosis": 18.0,
+      "max": 221,
+      "mean": 54.22,
+      "median": 54.0,
+      "min": 6,
+      "p5": 34.0,
+      "p95": 74.0,
+      "q1": 47.0,
+      "q3": 62.0,
+      "sd": 14.6,
+      "skewness": 1.71
+    },
+    {
+      "DIVISION": 3,
+      "days": 2458,
+      "excess_kurtosis": 62.82,
+      "max": 394,
+      "mean": 61.19,
+      "median": 61.0,
+      "min": 9,
+      "p5": 37.0,
+      "p95": 84.0,
+      "q1": 53.0,
+      "q3": 69.0,
+      "sd": 17.65,
+      "skewness": 4.02
+    },
+    {
+      "DIVISION": 4,
+      "days": 2458,
+      "excess_kurtosis": 23.7,
+      "max": 287,
+      "mean": 59.07,
+      "median": 59.0,
+      "min": 5,
+      "p5": 37.0,
+      "p95": 80.0,
+      "q1": 52.0,
+      "q3": 67.0,
+      "sd": 15.03,
+      "skewness": 1.24
+    },
+    {
+      "DIVISION": 5,
+      "days": 2458,
+      "excess_kurtosis": 47.77,
+      "max": 353,
+      "mean": 57.84,
+      "median": 57.0,
+      "min": 5,
+      "p5": 34.0,
+      "p95": 81.0,
+      "q1": 49.0,
+      "q3": 66.0,
+      "sd": 16.28,
+      "skewness": 2.87
+    },
+    {
+      "DIVISION": 6,
+      "days": 2458,
+      "excess_kurtosis": 0.96,
+      "max": 143,
+      "mean": 46.03,
+      "median": 45.0,
+      "min": 3,
+      "p5": 22.0,
+      "p95": 73.0,
+      "q1": 35.0,
+      "q3": 56.0,
+      "sd": 16.11,
+      "skewness": 0.4
+    }
+  ],
   "timestamps": {
     "rows_exactly_midnight": 0,
     "rows_in_dst_gap": 0
   },
-  "top_days": [
-    {
-      "date": "2023-04-06",
-      "n": 1712,
-      "pct_sans_feu": 72.6,
-      "top_type": "Probl\u00e8mes \u00e9lectriques",
-      "vehicles": 2359,
-      "weekday": "Thu"
-    },
-    {
-      "date": "2023-04-05",
-      "n": 950,
-      "pct_sans_feu": 64.8,
-      "top_type": "Probl\u00e8mes \u00e9lectriques",
-      "vehicles": 1586,
-      "weekday": "Wed"
-    },
-    {
-      "date": "2023-04-07",
-      "n": 930,
-      "pct_sans_feu": 52.5,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1642,
-      "weekday": "Fri"
-    },
-    {
-      "date": "2024-04-04",
-      "n": 736,
-      "pct_sans_feu": 53.8,
-      "top_type": "Probl\u00e8mes \u00e9lectriques",
-      "vehicles": 1208,
-      "weekday": "Thu"
-    },
-    {
-      "date": "2023-02-05",
-      "n": 728,
-      "pct_sans_feu": 49.0,
-      "top_type": "Inondation",
-      "vehicles": 1370,
-      "weekday": "Sun"
-    },
-    {
-      "date": "2023-07-13",
-      "n": 701,
-      "pct_sans_feu": 50.9,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1215,
-      "weekday": "Thu"
-    },
-    {
-      "date": "2023-02-04",
-      "n": 697,
-      "pct_sans_feu": 41.9,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1464,
-      "weekday": "Sat"
-    },
-    {
-      "date": "2023-04-08",
-      "n": 639,
-      "pct_sans_feu": 41.0,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1171,
-      "weekday": "Sat"
-    },
-    {
-      "date": "2024-08-10",
-      "n": 600,
-      "pct_sans_feu": 45.5,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1013,
-      "weekday": "Sat"
-    },
-    {
-      "date": "2024-08-09",
-      "n": 596,
-      "pct_sans_feu": 44.8,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 1125,
-      "weekday": "Fri"
-    },
-    {
-      "date": "2022-06-16",
-      "n": 593,
-      "pct_sans_feu": 42.7,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 883,
-      "weekday": "Thu"
-    },
-    {
-      "date": "2021-12-11",
-      "n": 550,
-      "pct_sans_feu": 54.0,
-      "top_type": "Premier r\u00e9pondant",
-      "vehicles": 897,
-      "weekday": "Sat"
-    }
-  ],
   "top_types": [
     {
       "INCIDENT_TYPE_DESC": "Premier r\u00e9pondant",
