@@ -7,6 +7,7 @@ authors = [{ name = "Isaac Abouganem", email = "43149476+abouganemi@users.norepl
 requires-python = ">=3.13,<3.15"
 dependencies = [
     "catboost>=1.2.10",
+    "holidays>=0.105",
     "lightgbm>=4.7.0",
     "numpy>=2.5.3",
     "pandas>=3.0.6",
