@@ -16,6 +16,7 @@ RAW_FILES: tuple[str, str] = (
     "donneesouvertes-interventions-sim.csv",
 )
 TARGET_DIVISIONS: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
+FIRST_RESPONDER_GROUP = "1-REPOND"
 
 RAW_SCHEMA = pl.Schema(
     {
@@ -153,4 +154,35 @@ def daily_counts(
             .cast(pl.UInt32)
         )
         .sort(keys)
+    )
+
+
+def division_day(
+    df: pl.DataFrame, keep: Iterable[int] = TARGET_DIVISIONS
+) -> pl.DataFrame:
+    """Daily total and first-responder counts per division: the modelling history.
+
+    Args:
+        df: Frame from ``load_interventions``.
+        keep: Divisions to return.
+
+    Returns:
+        ``date, DIVISION, n, n_fr`` from ``daily_counts``; ``n_fr`` counts
+        ``DESCRIPTION_GROUPE == FIRST_RESPONDER_GROUP`` (a blank group is not a
+        first-responder call) and is null exactly where ``n`` is null.
+    """
+    first_responder = (
+        df.filter(pl.col("DESCRIPTION_GROUPE") == FIRST_RESPONDER_GROUP)
+        .group_by("date", "DIVISION")
+        .agg(n_fr=pl.len())
+    )
+    return (
+        daily_counts(df, keep=keep)
+        .join(first_responder, on=["date", "DIVISION"], how="left")
+        .with_columns(
+            n_fr=pl.when(pl.col("n").is_not_null())
+            .then(pl.col("n_fr").fill_null(0))
+            .cast(pl.UInt32)
+        )
+        .sort("date", "DIVISION")
     )

@@ -153,3 +153,25 @@ def test_daily_counts_other_column(df: pl.DataFrame) -> None:
 def test_daily_counts_empty(df: pl.DataFrame) -> None:
     with pytest.raises(ValueError, match="empty"):
         data.daily_counts(df.clear())
+
+
+def test_division_day_first_responders(df: pl.DataFrame) -> None:
+    # One of division 1's two records on 2024-12-29 and its 2025-01-02 record are
+    # first-responder calls; the blank-group record on 2024-12-29 is not.
+    responder = (pl.col("DIVISION") == 1) & pl.col("has_time")
+    marked = df.with_columns(
+        DESCRIPTION_GROUPE=pl.when(responder)
+        .then(pl.lit(data.FIRST_RESPONDER_GROUP))
+        .otherwise("DESCRIPTION_GROUPE")
+    )
+    counts = data.division_day(marked, keep=(1, 2))
+    assert counts.columns == ["date", "DIVISION", "n", "n_fr"]
+    assert counts.schema["n_fr"] == pl.UInt32
+    assert counts.drop("n_fr").equals(data.daily_counts(marked, keep=(1, 2)))
+    assert counts.select("n_fr").to_series().to_list() == [
+        1, 0,  # 2024-12-29
+        0, 0,  # 2024-12-30: only division 0 reported
+        None, None,  # 2024-12-31: missing day stays missing
+        0, 0,
+        1, 0,
+    ]  # fmt: skip
