@@ -1,11 +1,19 @@
-"""Individual forecasting models: gradient boosting and a negative binomial GLM.
+"""Individual forecasting models: boosting, a GLM, state-space models, top-down.
 
-Every model predicts a multiplicative adjustment over the recent level. The
-offset is ``log(mean_28d * window_days)``, the plain 28-day mean forecast, so
-a model that learns nothing reproduces ``PlainMean`` and trees never have to
-extrapolate a level they did not see in training (Division 6 keeps rising and
-there is a late-2025 level break). Models train on the rows of
-``features.feature_table`` with a known target and a positive ``mean_28d``.
+Most feature-based models predict a multiplicative adjustment over the recent
+level. The offset is ``log(mean_28d * window_days)``, the plain 28-day mean
+forecast, so a model that learns nothing reproduces ``PlainMean`` and trees
+never have to extrapolate a level they did not see in training (Division 6
+keeps rising and there is a late-2025 level break). Identity-link boosters
+reach the same level by learning the ratio to it instead. Feature-based models
+train on the rows of ``features.feature_table`` with a known target and a
+positive ``mean_28d``.
+
+``ETSWeekly`` and ``ARCalendar`` fit one state-space model per division on
+``log(n)``; ``predict`` re-runs the filter with the fitted parameters on every
+day up to the cutoff, so the level follows the latest counts between monthly
+refits. ``TopDown`` forecasts the citywide total and splits it by recent
+division shares.
 
 Model specs are plain configuration; ``fit`` builds a fresh estimator each
 time. ``default_models`` lists the configurations that get validated. Usage::
@@ -13,14 +21,17 @@ time. ``default_models`` lists the configurations that get validated. Usage::
     uv run python -m ycit440_sim_forecast.models validate
 """
 
+import copy
 import datetime as dt
 import json
 import math
 import time
+from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from importlib.metadata import version
 from pathlib import Path
-from typing import Annotated, Any, Self, cast
+from typing import Annotated, Any, Literal, Self, cast
 
 import numpy as np
 import pandas as pd
@@ -30,6 +41,8 @@ from catboost import CatBoostRegressor, Pool
 from lightgbm import LGBMRegressor
 from sklearn.base import clone
 from statsmodels.discrete.discrete_model import NegativeBinomial
+from statsmodels.tsa.exponential_smoothing.ets import ETSModel
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from xgboost import XGBRegressor
 
 from ycit440_sim_forecast import features as ft
@@ -49,6 +62,42 @@ from ycit440_sim_forecast.spec import V2_DAILY, Forecaster, ForecastSpec
 
 DIVISIONS: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
 """Fixed division levels, so categorical codes match between fit and predict."""
+
+CITYWIDE = 0
+"""``DIVISION`` value of the citywide series built by ``citywide``."""
+
+BOOSTED_LEVELS: tuple[int, ...] = (*DIVISIONS, CITYWIDE)
+"""Categorical levels of ``DIVISION`` in boosters; the citywide level comes last
+so the codes of divisions 1-6 are those of ``DIVISIONS``."""
+
+LOG_LINK_OBJECTIVES: tuple[str, ...] = (
+    "poisson",
+    "tweedie",
+    "gamma",
+    "count:poisson",
+    "reg:tweedie",
+    "reg:gamma",
+    "Poisson",
+    "Tweedie",
+)
+"""Objective prefixes with a log link (LightGBM, XGBoost, CatBoost spellings)."""
+
+type LevelMode = Literal["offset", "ratio", "none"]
+
+MIN_FIT_DAYS = 91
+"""Non-null days a division needs before a per-division state-space model is fit."""
+
+WEEK = 7
+FOURIER_ORDER = 3
+YEAR_DAYS = 365.25
+AR_COLUMNS: tuple[str, ...] = (
+    *(f"weekday_{k}" for k in range(2, 8)),
+    *(f"{f}_{k}" for k in range(1, FOURIER_ORDER + 1) for f in ("doy_sin", "doy_cos")),
+    "holiday",
+    "holiday_adjacent",
+    "const",
+)
+"""``ARCalendar`` regressors of each day; weekday 1 (Monday) is the reference."""
 
 # Days before the cutoff that the longest feature reads. mean_91d spans the
 # cutoff and 90 days before it. A same-weekday mean over w weeks for a target
@@ -150,6 +199,20 @@ def issue_rows(
     return ft.feature_table(tail, spec).filter(pl.col("issue_date") == issue_date)
 
 
+def plain_level(rows: pl.DataFrame, spec: ForecastSpec) -> np.ndarray:
+    """The plain 28-day mean forecast for each row.
+
+    Args:
+        rows: Feature rows with ``mean_28d``.
+        spec: Forecast setting; the mean is scaled to ``window_days``.
+
+    Returns:
+        ``mean_28d * window_days``; NaN where ``mean_28d`` is null.
+    """
+    level = rows["mean_28d"].cast(pl.Float64).fill_null(np.nan).to_numpy()
+    return level * spec.window_days
+
+
 def log_offset(rows: pl.DataFrame, spec: ForecastSpec) -> np.ndarray:
     """Log of the plain 28-day mean forecast for each row.
 
@@ -160,8 +223,7 @@ def log_offset(rows: pl.DataFrame, spec: ForecastSpec) -> np.ndarray:
     Returns:
         ``log(mean_28d * window_days)``; NaN where ``mean_28d`` is null.
     """
-    level = rows["mean_28d"].cast(pl.Float64).fill_null(np.nan).to_numpy()
-    return np.log(level * spec.window_days)
+    return np.log(plain_level(rows, spec))
 
 
 def _with_divisions(
@@ -187,56 +249,99 @@ def _with_divisions(
     )
 
 
-def _check_divisions(rows: pl.DataFrame) -> None:
-    """Reject divisions outside ``DIVISIONS``.
+def _check_divisions(rows: pl.DataFrame, levels: Sequence[int] = DIVISIONS) -> None:
+    """Reject divisions outside ``levels``.
 
     Args:
         rows: Feature rows with ``DIVISION``.
+        levels: Accepted divisions.
 
     Raises:
         ValueError: If a division has no fixed level.
     """
-    unknown = set(rows["DIVISION"].unique().to_list()) - set(DIVISIONS)
+    unknown = set(rows["DIVISION"].unique().to_list()) - set(levels)
     if unknown:
-        msg = f"divisions {sorted(unknown)} are not in {DIVISIONS}"
+        msg = f"divisions {sorted(unknown)} are not in {tuple(levels)}"
         raise ValueError(msg)
 
 
-class BoostedForecaster:
-    """A LightGBM, XGBoost or CatBoost regressor with a log-level offset.
+def _log_link(estimator: Booster) -> bool:
+    """Whether the estimator's objective has a log link.
 
-    The estimator must use a log link (Poisson or Tweedie objective). With
-    ``offset`` on, the offset enters as LightGBM ``init_score``, XGBoost
-    ``base_margin`` or CatBoost ``Pool(baseline=...)``, and the model learns
-    the log ratio of the target to the plain 28-day mean. With it off, the
-    model fits ``y`` directly. ``DIVISION`` is categorical; other features are
-    floats with nulls as NaN.
+    Args:
+        estimator: LightGBM, XGBoost or CatBoost regressor.
+
+    Returns:
+        True when the objective starts with one of ``LOG_LINK_OBJECTIVES``.
+    """
+    match estimator:
+        case CatBoostRegressor():
+            objective = estimator.get_params().get("loss_function")
+        case _:
+            objective = estimator.get_params().get("objective")
+    return str(objective).startswith(LOG_LINK_OBJECTIVES)
+
+
+class BoostedForecaster:
+    """A LightGBM, XGBoost or CatBoost regressor relative to the recent level.
+
+    ``level`` sets how the level ``L = mean_28d * window_days`` (the plain
+    28-day mean forecast) enters:
+
+    - ``"offset"``: ``log(L)`` enters as LightGBM ``init_score``, XGBoost
+      ``base_margin`` or CatBoost ``Pool(baseline=...)``, and the model learns
+      the log ratio of the target to ``L``. Needs a log-link objective.
+    - ``"ratio"``: the model fits ``y / L`` with sample weights ``L`` and the
+      forecast is ``L`` times its prediction. Since ``L * |y / L - p|`` equals
+      ``|y - L * p|``, an L1 objective then minimises MAE on counts exactly;
+      a Poisson objective likewise gives the Poisson deviance of ``y`` at
+      ``L * p``.
+    - ``"none"``: the model fits ``y`` directly.
+
+    The objective's link (log or identity) is read from the estimator.
+    ``DIVISION`` is categorical with the levels ``BOOSTED_LEVELS``; other
+    features are floats with nulls as NaN.
 
     Attributes:
         name: Label used in result tables.
         estimator: Unfitted estimator, cloned on every ``fit``.
-        offset: Whether predictions are relative to the plain 28-day mean.
+        level: How the recent level enters the model.
     """
 
-    def __init__(self, name: str, estimator: Booster, *, offset: bool = True) -> None:
+    def __init__(
+        self, name: str, estimator: Booster, *, level: LevelMode = "offset"
+    ) -> None:
         """Store the configuration.
 
         Args:
             name: Label used in result tables.
             estimator: Unfitted ``LGBMRegressor``, ``XGBRegressor`` or
-                ``CatBoostRegressor`` with a log-link objective.
-            offset: Whether predictions are relative to the plain 28-day mean.
+                ``CatBoostRegressor``.
+            level: ``"offset"``, ``"ratio"`` or ``"none"`` (see the class).
 
         Raises:
             TypeError: If ``estimator`` is not one of the supported types.
+            ValueError: If ``level`` is unknown, or is ``"offset"`` with an
+                objective that has no log link.
         """
         if not isinstance(estimator, LGBMRegressor | XGBRegressor | CatBoostRegressor):
             msg = f"unsupported estimator {type(estimator).__name__}"
             raise TypeError(msg)
+        if level not in ("offset", "ratio", "none"):
+            msg = f"level must be 'offset', 'ratio' or 'none', got {level!r}"
+            raise ValueError(msg)
+        if level == "offset" and not _log_link(estimator):
+            msg = f"{name}: an offset needs a log-link objective"
+            raise ValueError(msg)
         self.name = name
         self.estimator = estimator
-        self.offset = offset
+        self.level: LevelMode = level
         self._model: Booster | None = None
+
+    @property
+    def log_link(self) -> bool:
+        """Whether the estimator's objective has a log link."""
+        return _log_link(self.estimator)
 
     @staticmethod
     def _frame(rows: pl.DataFrame, *, categorical: bool) -> pd.DataFrame:
@@ -255,7 +360,9 @@ class BoostedForecaster:
             "DIVISION", pl.col(ft.FEATURE_COLUMNS[1:]).cast(pl.Float64)
         ).to_pandas()
         if categorical:
-            frame["DIVISION"] = pd.Categorical(frame["DIVISION"], categories=DIVISIONS)
+            frame["DIVISION"] = pd.Categorical(
+                frame["DIVISION"], categories=BOOSTED_LEVELS
+            )
         return frame
 
     def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
@@ -270,15 +377,19 @@ class BoostedForecaster:
 
         Raises:
             ValueError: If there are no training rows, or a division is
-                outside ``DIVISIONS``.
+                outside ``BOOSTED_LEVELS``.
         """
         rows = training_rows(history, spec)
         if rows.is_empty():
             msg = f"{self.name}: no training rows in history"
             raise ValueError(msg)
-        _check_divisions(rows)
+        _check_divisions(rows, BOOSTED_LEVELS)
         y = rows["y"].to_numpy()
-        margin = log_offset(rows, spec) if self.offset else None
+        margin = log_offset(rows, spec) if self.level == "offset" else None
+        weight = None
+        if self.level == "ratio":
+            weight = plain_level(rows, spec)
+            y = y / weight
         model = cast(Booster, clone(self.estimator))
         match model:
             case CatBoostRegressor():
@@ -288,12 +399,23 @@ class BoostedForecaster:
                         y,
                         cat_features=["DIVISION"],
                         baseline=margin,
+                        weight=weight,
                     )
                 )
             case LGBMRegressor():
-                model.fit(self._frame(rows, categorical=True), y, init_score=margin)
+                model.fit(
+                    self._frame(rows, categorical=True),
+                    y,
+                    sample_weight=weight,
+                    init_score=margin,
+                )
             case _:
-                model.fit(self._frame(rows, categorical=True), y, base_margin=margin)
+                model.fit(
+                    self._frame(rows, categorical=True),
+                    y,
+                    sample_weight=weight,
+                    base_margin=margin,
+                )
         self._model = model
         return self
 
@@ -310,22 +432,24 @@ class BoostedForecaster:
 
         Returns:
             ``DIVISION, y_pred`` for every division in ``history``, sorted;
-            null when ``history`` does not reach the cutoff or, with the
-            offset on, ``mean_28d`` is missing.
+            null when ``history`` does not reach the cutoff or, with
+            ``level`` ``"offset"`` or ``"ratio"``, ``mean_28d`` is missing.
 
         Raises:
             RuntimeError: If called before ``fit``.
+            ValueError: If a division is outside ``BOOSTED_LEVELS``.
         """
         if self._model is None:
             msg = f"{self.name}: call fit before predict"
             raise RuntimeError(msg)
         rows = issue_rows(history, issue_date, spec)
-        if self.offset:
+        if self.level != "none":
             rows = rows.filter(pl.col("mean_28d") > 0)
         if rows.is_empty():
             return _with_divisions(history, rows, np.empty(0))
-        _check_divisions(rows)
-        margin = log_offset(rows, spec) if self.offset else None
+        _check_divisions(rows, BOOSTED_LEVELS)
+        margin = log_offset(rows, spec) if self.level == "offset" else None
+        log_link = self.log_link
         match self._model:
             case CatBoostRegressor() as model:
                 pool = Pool(
@@ -335,15 +459,21 @@ class BoostedForecaster:
                 )
                 # The Pool baseline is added to the raw score; "Exponent" maps
                 # it to the count scale.
-                y_pred = model.predict(pool, prediction_type="Exponent")
-            case LGBMRegressor() as model:
+                kind = "Exponent" if log_link else "RawFormulaVal"
+                y_pred = model.predict(pool, prediction_type=kind)
+            case LGBMRegressor() as model if log_link:
                 raw = model.predict(self._frame(rows, categorical=True), raw_score=True)
                 y_pred = np.exp(np.asarray(raw) + (0.0 if margin is None else margin))
+            case LGBMRegressor() as model:
+                y_pred = model.predict(self._frame(rows, categorical=True))
             case model:
                 y_pred = model.predict(
                     self._frame(rows, categorical=True), base_margin=margin
                 )
-        return _with_divisions(history, rows, np.asarray(y_pred, dtype=np.float64))
+        y_pred = np.asarray(y_pred, dtype=np.float64)
+        if self.level == "ratio":
+            y_pred = y_pred * plain_level(rows, spec)
+        return _with_divisions(history, rows, y_pred)
 
 
 class NegBinGLM:
@@ -494,6 +624,567 @@ class NegBinGLM:
         return _with_divisions(history, rows, np.asarray(y_pred, dtype=np.float64))
 
 
+def _log_series(history: pl.DataFrame, division: int) -> tuple[pl.Series, np.ndarray]:
+    """Daily ``log(n)`` of one division between its first and last known day.
+
+    A zero count has no log, so it is treated as a missing day.
+
+    Args:
+        history: ``date, DIVISION, n, n_fr`` on the full calendar.
+        division: Division to extract.
+
+    Returns:
+        Dates and ``log(n)``, NaN on missing days. Leading and trailing
+        missing days are dropped, so both ends are known; both are empty when
+        no day is known.
+    """
+    frame = (
+        history.filter(pl.col("DIVISION") == division)
+        .sort("date")
+        .select("date", n=pl.when(pl.col("n") > 0).then(pl.col("n")))
+    )
+    known = frame["n"].is_not_null().arg_true()
+    if known.is_empty():
+        return frame["date"].clear(), np.empty(0)
+    first, last = known[0], known[-1]
+    frame = frame.slice(first, last - first + 1)
+    y = np.log(frame["n"].cast(pl.Float64).fill_null(np.nan).to_numpy())
+    return frame["date"], y
+
+
+def _interpolate(y: np.ndarray) -> np.ndarray:
+    """Fill NaN by linear interpolation over the day index.
+
+    Args:
+        y: Series with NaN on missing days.
+
+    Returns:
+        ``y`` with interior NaN interpolated and leading or trailing NaN set
+        to the nearest known value.
+    """
+    missing = np.isnan(y)
+    if not missing.any():
+        return y
+    index = np.arange(len(y))
+    return np.interp(index, index[~missing], y[~missing])
+
+
+def calendar_exog(dates: pl.Series) -> np.ndarray:
+    """``AR_COLUMNS`` of each day: weekday, yearly Fourier, holidays, constant.
+
+    The holiday columns come from ``features.add_calendar`` with a one-day
+    window, so they match the model features day by day. The Fourier terms
+    use the day of year over ``YEAR_DAYS``, as ``target_doy_sin`` does.
+
+    Args:
+        dates: Days to describe.
+
+    Returns:
+        A float matrix with one row per day.
+    """
+    frame = ft.add_calendar(pl.DataFrame({"target_start": dates}), ForecastSpec())
+    doy = pl.col("target_start").dt.ordinal_day()
+
+    def angle(k: int) -> pl.Expr:
+        return 2 * math.pi * k * doy / YEAR_DAYS
+
+    exprs = [
+        *((pl.col("target_weekday") == k).cast(pl.Float64) for k in range(2, 8)),
+        *(
+            wave
+            for k in range(1, FOURIER_ORDER + 1)
+            for wave in (angle(k).sin(), angle(k).cos())
+        ),
+        pl.col("holidays").cast(pl.Float64),
+        pl.col("holiday_adjacent").cast(pl.Float64),
+        pl.lit(1.0),
+    ]
+    named = [e.alias(c) for e, c in zip(exprs, AR_COLUMNS, strict=True)]
+    return frame.select(named).to_numpy().astype(np.float64)
+
+
+class _DivisionStateSpace(ABC):
+    """One state-space model on daily ``log(n)`` per division.
+
+    ``fit`` estimates the parameters of every division with at least
+    ``min_days`` known days. ``predict`` keeps those parameters, re-runs the
+    filter on the division's days up to the cutoff and forecasts
+    ``h = gap_days + window_days - 1`` steps past the cutoff, plus one step per
+    missing day at the end of the history. The forecast is the sum of
+    ``exp`` of the last ``window_days`` log-scale forecasts. With symmetric
+    errors on the log scale, ``exp`` of the log forecast is the median count,
+    the optimal point forecast under MAE.
+
+    Attributes:
+        name: Label used in result tables.
+        min_days: Known days a division needs to be fit.
+    """
+
+    def __init__(self, name: str, min_days: int = MIN_FIT_DAYS) -> None:
+        """Store the configuration.
+
+        Args:
+            name: Label used in result tables.
+            min_days: Known days a division needs to be fit.
+        """
+        self.name = name
+        self.min_days = min_days
+        self._fitted: dict[int, Any] = {}
+
+    @abstractmethod
+    def _fit_division(self, dates: pl.Series, y: np.ndarray) -> Any:
+        """Estimate one division's parameters.
+
+        Args:
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+
+        Returns:
+            Whatever ``_forecast_division`` needs.
+        """
+
+    @abstractmethod
+    def _forecast_division(
+        self, fitted: Any, dates: pl.Series, y: np.ndarray, steps: int
+    ) -> np.ndarray:
+        """Re-filter ``y`` with fixed parameters and forecast.
+
+        Args:
+            fitted: Output of ``_fit_division``.
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+            steps: Days to forecast after the last day of ``dates``.
+
+        Returns:
+            ``steps`` log-scale forecasts.
+        """
+
+    def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
+        """Estimate every division's parameters, replacing any earlier fit.
+
+        Args:
+            history: ``date, DIVISION, n, n_fr`` on the full calendar.
+            spec: Forecast setting (the parameters do not depend on it).
+
+        Returns:
+            This forecaster.
+
+        Raises:
+            ValueError: If ``history`` fails ``check_history`` or no division
+                has ``min_days`` known days.
+        """
+        ft.check_history(history)
+        self._fitted = {}
+        fitted: dict[int, Any] = {}
+        for division in history["DIVISION"].unique().sort().to_list():
+            dates, y = _log_series(history, division)
+            if np.isfinite(y).sum() >= self.min_days:
+                fitted[division] = self._fit_division(dates, y)
+        if not fitted:
+            msg = f"{self.name}: no training rows in history"
+            raise ValueError(msg)
+        self._fitted = fitted
+        return self
+
+    def predict(
+        self, history: pl.DataFrame, issue_date: dt.date, spec: ForecastSpec
+    ) -> pl.DataFrame:
+        """Forecast the window of ``issue_date`` for every division.
+
+        Args:
+            history: ``date, DIVISION, n, n_fr`` on the full calendar; only
+                days up to the cutoff are read.
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
+
+        Returns:
+            ``DIVISION, y_pred`` for every division in ``history``, sorted;
+            null when ``history`` does not reach the cutoff or the division
+            was not fit.
+
+        Raises:
+            RuntimeError: If called before ``fit``.
+        """
+        if not self._fitted:
+            msg = f"{self.name}: call fit before predict"
+            raise RuntimeError(msg)
+        cutoff = spec.cutoff(issue_date)
+        known = history.filter(pl.col("date") <= cutoff)
+        forecasts: dict[int, float] = {}
+        if not known.is_empty() and known["date"].max() == cutoff:
+            for division, fitted in self._fitted.items():
+                dates, y = _log_series(known, division)
+                if dates.is_empty():
+                    continue
+                last: dt.date = dates[-1]
+                steps = (cutoff - last).days + spec.gap_days + spec.window_days - 1
+                path = self._forecast_division(fitted, dates, y, steps)
+                total = float(np.exp(path[-spec.window_days :]).sum())
+                if math.isfinite(total):
+                    forecasts[division] = total
+        predicted = pl.DataFrame(
+            {"DIVISION": list(forecasts), "y_pred": list(forecasts.values())},
+            schema={"DIVISION": pl.Int64, "y_pred": pl.Float64},
+        )
+        return (
+            history.select(pl.col("DIVISION").unique().sort())
+            .join(predicted, on="DIVISION", how="left")
+            .select("DIVISION", "y_pred")
+        )
+
+
+@dataclass(frozen=True)
+class _EtsFit:
+    """Fitted ETS parameters of one division.
+
+    Attributes:
+        start: First day of the fitted series; the initial states refer to it.
+        params: ``ETSModel`` parameters, initial states included.
+    """
+
+    start: dt.date
+    params: np.ndarray
+
+
+class ETSWeekly(_DivisionStateSpace):
+    """ETS(A,N,A) on ``log(n)``: additive error, no trend, weekly seasonality.
+
+    ``statsmodels`` ``ETSModel`` with estimated initial states. There is no
+    trend: a linear trend over-predicts after the late-2025 level break.
+    ``ETSModel`` does not accept missing values, so interior missing days are
+    filled by linear interpolation in log space, at fit and at predict.
+    ``predict`` runs ``ETSModel.smooth`` with the fitted parameters on the new
+    series, starting on a day that is a whole number of weeks after the fitted
+    start (up to 6 leading days are dropped), so each initial seasonal state
+    keeps its weekday.
+
+    Attributes:
+        name: Label used in result tables.
+        min_days: Known days a division needs to be fit.
+        maxiter: Iteration limit of the optimiser.
+    """
+
+    def __init__(
+        self,
+        name: str = "ets_weekly",
+        maxiter: int = 1000,
+        min_days: int = MIN_FIT_DAYS,
+    ) -> None:
+        """Store the configuration.
+
+        Args:
+            name: Label used in result tables.
+            maxiter: Iteration limit of the optimiser (L-BFGS-B).
+            min_days: Known days a division needs to be fit.
+        """
+        super().__init__(name, min_days)
+        self.maxiter = maxiter
+
+    @staticmethod
+    def _model(y: np.ndarray) -> ETSModel:
+        """The ETS(A,N,A) model of a log series.
+
+        Args:
+            y: ``log(n)`` without NaN.
+
+        Returns:
+            An unfitted ``ETSModel``.
+        """
+        return ETSModel(
+            y, error="add", trend=None, seasonal="add", seasonal_periods=WEEK
+        )
+
+    def _fit_division(self, dates: pl.Series, y: np.ndarray) -> _EtsFit:
+        """Estimate the smoothing parameters and initial states.
+
+        Args:
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+
+        Returns:
+            The first day and the fitted parameters.
+
+        Raises:
+            RuntimeError: If the optimiser returns a non-finite parameter.
+        """
+        result: Any = self._model(_interpolate(y)).fit(disp=False, maxiter=self.maxiter)
+        params = np.asarray(result.params, dtype=np.float64)
+        if not np.isfinite(params).all():
+            msg = f"{self.name}: ETS gave non-finite parameters"
+            raise RuntimeError(msg)
+        return _EtsFit(start=dates[0], params=params)
+
+    def _forecast_division(
+        self, fitted: _EtsFit, dates: pl.Series, y: np.ndarray, steps: int
+    ) -> np.ndarray:
+        """Smooth the new series with the fitted parameters and forecast.
+
+        Args:
+            fitted: Start day and parameters from ``_fit_division``.
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+            steps: Days to forecast after the last day of ``dates``.
+
+        Returns:
+            ``steps`` log-scale forecasts; NaN when fewer than two weeks of
+            days are left after aligning the start (``ETSModel`` needs two
+            seasonal cycles to build its heuristic start values).
+        """
+        first: dt.date = dates[0]
+        skip = (fitted.start - first).days % WEEK
+        if len(y) - skip < 2 * WEEK:
+            return np.full(steps, np.nan)
+        result: Any = self._model(_interpolate(y[skip:])).smooth(fitted.params)
+        return np.asarray(result.forecast(steps), dtype=np.float64)
+
+
+class ARCalendar(_DivisionStateSpace):
+    """Deseasonalised autoregression on ``log(n)`` (Channouf et al. 2007 style).
+
+    ``statsmodels`` ``SARIMAX`` regression of ``log(n)`` on ``calendar_exog``
+    (weekday dummies, yearly Fourier terms of order 3, the Québec holiday and
+    holiday-adjacent indicators and a constant) with AR(``order``) errors and
+    no differencing. The Kalman filter skips missing days natively. ``predict``
+    rebuilds the model on the new series and runs ``filter`` with the fitted
+    parameters (what ``results.apply`` does, without the smoother), then
+    forecasts with the calendar regressors of the target days.
+
+    Attributes:
+        name: Label used in result tables.
+        min_days: Known days a division needs to be fit.
+        order: Autoregressive order.
+        method: ``statsmodels`` optimiser.
+        maxiter: Iteration limit of the optimiser.
+    """
+
+    def __init__(
+        self,
+        name: str = "ar_calendar",
+        order: int = 7,
+        method: str = "lbfgs",
+        maxiter: int = 200,
+        min_days: int = MIN_FIT_DAYS,
+    ) -> None:
+        """Store the configuration.
+
+        Args:
+            name: Label used in result tables.
+            order: Autoregressive order.
+            method: ``statsmodels`` optimiser.
+            maxiter: Iteration limit of the optimiser; the ``statsmodels``
+                default of 50 is not always enough for 23 parameters.
+            min_days: Known days a division needs to be fit.
+        """
+        super().__init__(name, min_days)
+        self.order = order
+        self.method = method
+        self.maxiter = maxiter
+
+    def _fit_division(self, dates: pl.Series, y: np.ndarray) -> Any:
+        """Estimate the regression, AR and variance parameters.
+
+        Args:
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+
+        Returns:
+            The ``SARIMAX`` results.
+
+        Raises:
+            RuntimeError: If the optimiser returns a non-finite parameter.
+        """
+        model = SARIMAX(
+            y, exog=calendar_exog(dates), order=(self.order, 0, 0), trend="n"
+        )
+        result: Any = model.fit(
+            disp=False, method=self.method, maxiter=self.maxiter, cov_type="none"
+        )
+        if not np.isfinite(result.params).all():
+            msg = f"{self.name}: SARIMAX gave non-finite parameters"
+            raise RuntimeError(msg)
+        return result
+
+    def _forecast_division(
+        self, fitted: Any, dates: pl.Series, y: np.ndarray, steps: int
+    ) -> np.ndarray:
+        """Filter the new series with the fitted parameters and forecast.
+
+        Args:
+            fitted: ``SARIMAX`` results from ``_fit_division``.
+            dates: Consecutive days, first and last known.
+            y: ``log(n)`` on those days, NaN where missing.
+            steps: Days to forecast after the last day of ``dates``.
+
+        Returns:
+            ``steps`` log-scale forecasts (the conditional means).
+        """
+        last: dt.date = dates[-1]
+        future = pl.date_range(
+            last + dt.timedelta(days=1), last + dt.timedelta(days=steps), eager=True
+        )
+        filtered = fitted.model.clone(y, exog=calendar_exog(dates)).filter(
+            fitted.params, cov_type="none"
+        )
+        forecast = filtered.forecast(steps, exog=calendar_exog(future))
+        return np.asarray(forecast, dtype=np.float64)
+
+
+def citywide(history: pl.DataFrame) -> pl.DataFrame:
+    """Sum every division per day into one series with ``DIVISION`` ``CITYWIDE``.
+
+    Args:
+        history: ``date, DIVISION, n, n_fr`` on the full calendar.
+
+    Returns:
+        ``date, DIVISION, n, n_fr`` with the input dtypes, sorted by date;
+        ``n`` and ``n_fr`` are null on a day where any division is null or
+        has no row.
+
+    Raises:
+        ValueError: If ``history`` fails ``check_history``.
+    """
+    ft.check_history(history)
+    complete = pl.col("n").count() == history["DIVISION"].n_unique()
+    return (
+        history.group_by("date")
+        .agg(
+            n=pl.when(complete).then(pl.col("n").sum()),
+            n_fr=pl.when(complete).then(pl.col("n_fr").sum()),
+        )
+        .select(
+            "date",
+            pl.lit(CITYWIDE, dtype=pl.Int64).alias("DIVISION"),
+            pl.col("n").cast(history.schema["n"]),
+            pl.col("n_fr").cast(history.schema["n_fr"]),
+        )
+        .sort("date")
+    )
+
+
+def division_shares(
+    history: pl.DataFrame, cutoff: dt.date, days: int = 28
+) -> pl.DataFrame:
+    """Each division's share of the citywide count over the days ending at ``cutoff``.
+
+    Only days in the window where every division is known count, for the
+    division sums and the citywide sum alike, so the shares add up to 1.
+
+    Args:
+        history: ``date, DIVISION, n, n_fr`` on the full calendar.
+        cutoff: Last day of the window.
+        days: Window length.
+
+    Returns:
+        ``DIVISION, share`` for every division in ``history``, sorted; null
+        when fewer than ``features.min_samples(days)`` days are complete.
+    """
+    divisions = history.select(pl.col("DIVISION").unique().sort())
+    window = history.filter(
+        pl.col("date").is_between(cutoff - dt.timedelta(days=days - 1), cutoff)
+    )
+    complete = (
+        window.group_by("date")
+        .agg(known=pl.col("n").count())
+        .filter(pl.col("known") == divisions.height)
+    )
+    totals = (
+        window.join(complete, on="date", how="semi")
+        .group_by("DIVISION")
+        .agg(n=pl.col("n").cast(pl.Float64).sum())
+    )
+    enough = complete.height >= ft.min_samples(days)
+    return divisions.join(totals, on="DIVISION", how="left").select(
+        "DIVISION",
+        share=pl.when(pl.lit(enough)).then(pl.col("n") / pl.col("n").sum()),
+    )
+
+
+class TopDown:
+    """Forecast the citywide total with ``base`` and split it by division share.
+
+    ``fit`` fits a deep copy of ``base`` on ``citywide(history)``, so ``base``
+    itself stays unfitted. ``predict`` multiplies the citywide forecast by
+    ``division_shares`` over the ``share_days`` days ending at the cutoff.
+
+    Attributes:
+        name: Label used in result tables.
+        base: Unfitted forecaster of the citywide series, copied on every fit.
+        share_days: Days the division shares are measured over.
+    """
+
+    def __init__(self, name: str, base: Forecaster, share_days: int = 28) -> None:
+        """Store the configuration.
+
+        Args:
+            name: Label used in result tables.
+            base: Unfitted forecaster of the citywide series.
+            share_days: Days the division shares are measured over.
+
+        Raises:
+            ValueError: If ``share_days`` is below 1.
+        """
+        if share_days < 1:
+            msg = f"share_days must be >= 1, got {share_days}"
+            raise ValueError(msg)
+        self.name = name
+        self.base = base
+        self.share_days = share_days
+        self._model: Forecaster | None = None
+
+    def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
+        """Fit a fresh copy of ``base`` on the citywide series.
+
+        Args:
+            history: ``date, DIVISION, n, n_fr`` on the full calendar.
+            spec: Forecast setting.
+
+        Returns:
+            This forecaster.
+
+        Raises:
+            ValueError: If ``history`` fails ``check_history``, or as raised
+                by the base ``fit``.
+        """
+        self._model = None
+        self._model = copy.deepcopy(self.base).fit(citywide(history), spec)
+        return self
+
+    def predict(
+        self, history: pl.DataFrame, issue_date: dt.date, spec: ForecastSpec
+    ) -> pl.DataFrame:
+        """Forecast the window of ``issue_date`` for every division.
+
+        Args:
+            history: ``date, DIVISION, n, n_fr`` on the full calendar; only
+                days up to the cutoff are read.
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
+
+        Returns:
+            ``DIVISION, y_pred`` for every division in ``history``, sorted;
+            null when the citywide forecast or the share is null.
+
+        Raises:
+            RuntimeError: If called before ``fit``.
+        """
+        if self._model is None:
+            msg = f"{self.name}: call fit before predict"
+            raise RuntimeError(msg)
+        cutoff = spec.cutoff(issue_date)
+        known = history.filter(pl.col("date") <= cutoff)
+        city = self._model.predict(citywide(known), issue_date, spec)["y_pred"]
+        total = city[0] if city.len() else None
+        shares = division_shares(known, cutoff, self.share_days)
+        return (
+            history.select(pl.col("DIVISION").unique().sort())
+            .join(shares, on="DIVISION", how="left")
+            .select(
+                "DIVISION",
+                y_pred=pl.col("share") * pl.lit(total, dtype=pl.Float64),
+            )
+        )
+
+
 def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
     """The model configurations that get validated.
 
@@ -507,7 +1198,10 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
 
     Returns:
         LightGBM Poisson, Tweedie and Poisson without offset; XGBoost Poisson
-        and Tweedie; CatBoost Poisson and Tweedie; the NB GLM.
+        and Tweedie; CatBoost Poisson and Tweedie; the NB GLM; LightGBM L1 on
+        raw counts and on the ratio to the level; ETS(A,N,A) and the
+        calendar AR(7) per division; top-down LightGBM Poisson (raw) and
+        top-down ETS.
     """
     lgbm = {
         "n_estimators": 400,
@@ -538,15 +1232,19 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
         "logging_level": "Silent",
         "allow_writing_files": False,
     }
+
+    def lgbm_poisson_raw() -> BoostedForecaster:
+        return BoostedForecaster(
+            "lgbm_poisson_raw", LGBMRegressor(objective="poisson", **lgbm), level="none"
+        )
+
     return [
         BoostedForecaster("lgbm_poisson", LGBMRegressor(objective="poisson", **lgbm)),
         BoostedForecaster(
             "lgbm_tweedie",
             LGBMRegressor(objective="tweedie", tweedie_variance_power=1.5, **lgbm),
         ),
-        BoostedForecaster(
-            "lgbm_poisson_raw", LGBMRegressor(objective="poisson", **lgbm), offset=False
-        ),
+        lgbm_poisson_raw(),
         BoostedForecaster(
             "xgb_poisson", XGBRegressor(objective="count:poisson", **xgb)
         ),
@@ -562,6 +1260,16 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
             CatBoostRegressor(loss_function="Tweedie:variance_power=1.5", **cat),
         ),
         NegBinGLM(),
+        BoostedForecaster(
+            "lgbm_l1_raw", LGBMRegressor(objective="l1", **lgbm), level="none"
+        ),
+        BoostedForecaster(
+            "lgbm_l1", LGBMRegressor(objective="l1", **lgbm), level="ratio"
+        ),
+        ETSWeekly(),
+        ARCalendar(),
+        TopDown("topdown_lgbm_poisson_raw", lgbm_poisson_raw()),
+        TopDown("topdown_ets", ETSWeekly()),
     ]
 
 
@@ -664,15 +1372,17 @@ def models_report(
 
     Returns:
         The report (period, setting, overall, without anomalies, by division,
-        by month, paired bootstraps against each of ``REFERENCES``, timings and
-        library versions, floats rounded to 3) and the raw results with an
-        ``anomaly`` column.
+        by month, by year, bias by year and division, paired bootstraps
+        against each of ``REFERENCES``, timings and library versions, floats
+        rounded to 3) and the raw results with an ``anomaly`` column. The year
+        is the calendar year of ``target_start``.
     """
     timed = [Timed(m) for m in (*forecasters, SameWeekdayMean(13), PlainMean())]
     results = flag_anomalies(
         rolling_origin(history, timed, spec, start, end), anomalies
     )
     clean = results.filter(~pl.col("anomaly"))
+    with_year = results.with_columns(year=pl.col("target_start").dt.year())
 
     def table(frame: pl.DataFrame, by: Sequence[str] = ()) -> list[dict[str, Any]]:
         return score(frame, by).to_dicts()
@@ -692,6 +1402,10 @@ def models_report(
         "overall_without_anomalies": table(clean),
         "by_division": table(results, ["DIVISION"]),
         "by_month": table(results, ["month"]),
+        "by_year": table(with_year, ["year"]),
+        "by_year_division": score(with_year, ["year", "DIVISION"])
+        .select("model", "year", "DIVISION", "bias")
+        .to_dicts(),
         "bootstrap": bootstrap,
         "seconds": {
             m.name: {"fit": m.fit_seconds, "predict": m.predict_seconds} for m in timed
@@ -756,7 +1470,7 @@ def validate(
     clean = {row["model"]: row["mae"] for row in report["overall_without_anomalies"]}
     for row in report["overall"]:
         typer.echo(
-            f"{row['model']:<18} MAE {row['mae']:6.3f}  bias {row['bias']:+6.3f}  "
+            f"{row['model']:<26} MAE {row['mae']:6.3f}  bias {row['bias']:+6.3f}  "
             f"MAE without anomalies {clean[row['model']]:6.3f}"
         )
     typer.echo(f"wrote {out} and {predictions}")
