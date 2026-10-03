@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13, <3.15"
 resolution-markers = [
     "python_full_version >= '3.14' and platform_machine == 'x86_64' and sys_platform == 'linux'",
@@ -1081,8 +1081,9 @@ wheels = [
 
 [[package]]
 name = "ycit440-sim-forecast"
-version = "1.1.0"
+version = "1.2.0"
 source = { editable = "." }
+default-groups = ["dev", "eda", "gpu"]
 dependencies = [
     { name = "catboost" },
     { name = "holidays" },

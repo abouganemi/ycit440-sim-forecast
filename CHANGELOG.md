@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.1.0...v1.2.0) (2026-10-03)
+
+
+### Features
+
+* **data:** add first-responder counts to the division-day history ([4bdc1cb](https://github.com/abouganemi/ycit440-sim-forecast/commit/4bdc1cb6b9230200dcb46d1729ce95b0b82b54e9))
+* **features:** add cutoff-safe feature pipeline ([9284d5e](https://github.com/abouganemi/ycit440-sim-forecast/commit/9284d5eb501f2b9a91faf100609c6b1e2ca30497))
+
 # [1.1.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.0.0...v1.1.0) (2026-10-03)
 
 
