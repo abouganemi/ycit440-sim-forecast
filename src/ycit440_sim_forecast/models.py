@@ -1344,7 +1344,7 @@ class Timed:
         return pred
 
 
-def _rounded(value: Any) -> Any:
+def rounded(value: Any) -> Any:
     """Round every float in a nested structure to 3 decimals.
 
     Args:
@@ -1355,9 +1355,9 @@ def _rounded(value: Any) -> Any:
     """
     match value:
         case dict():
-            return {k: _rounded(v) for k, v in value.items()}
+            return {k: rounded(v) for k, v in value.items()}
         case list() | tuple():
-            return [_rounded(v) for v in value]
+            return [rounded(v) for v in value]
         case float():
             return round(value, 3) if math.isfinite(value) else None
         case _:
@@ -1427,7 +1427,7 @@ def models_report(
         },
         "versions": {lib: version(lib) for lib in LIBRARIES},
     }
-    return _rounded(report), results
+    return rounded(report), results
 
 
 @app.callback()
