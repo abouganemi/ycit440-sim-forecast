@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.3.0...v1.4.0) (2026-10-04)
+
+
+### Features
+
+* **ensemble:** add mean, median and LP combiners ([73c509e](https://github.com/abouganemi/ycit440-sim-forecast/commit/73c509e1ea585ea43936d51a19b284b75839574d))
+
 # [1.3.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.2.0...v1.3.0) (2026-10-04)
 
 
