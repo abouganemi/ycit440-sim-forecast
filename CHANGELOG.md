@@ -1,3 +1,14 @@
+# [1.3.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.2.0...v1.3.0) (2026-10-04)
+
+
+### Features
+
+* **evaluate:** add median_error, under_share ([c5cbbe0](https://github.com/abouganemi/ycit440-sim-forecast/commit/c5cbbe0eb2f48f089e1124c10a1660f50dff3cd0))
+* **evaluate:** add paired block bootstrap ([4b5bd7f](https://github.com/abouganemi/ycit440-sim-forecast/commit/4b5bd7f59630d83b113c38aa3a3ba98ab39f09d7))
+* **models:** add ENSEMBLE_CANDIDATES, drop ar_calendar ([61b174e](https://github.com/abouganemi/ycit440-sim-forecast/commit/61b174e04cc86c56c01fe6b7c38d66382935a1bc))
+* **models:** add individual forecasters ([43404a4](https://github.com/abouganemi/ycit440-sim-forecast/commit/43404a4fc7b8c1b1addda943391e30a07bd0eea1))
+* **models:** add level-tracking, top-down and MAE-objective forecasters ([aab221e](https://github.com/abouganemi/ycit440-sim-forecast/commit/aab221e264900c725341cb166afb769a35f94503))
+
 # [1.2.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.1.0...v1.2.0) (2026-10-03)
 
 
