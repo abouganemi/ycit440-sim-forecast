@@ -1006,7 +1006,7 @@ def test_timed_adds_up(history: pl.DataFrame) -> None:
 
 
 def test_rounded() -> None:
-    got = md._rounded({"a": [1.23456, (2.0, float("nan"))], "b": "x", "c": 3})
+    got = md.rounded({"a": [1.23456, (2.0, float("nan"))], "b": "x", "c": 3})
     assert got == {"a": [1.235, [2.0, None]], "b": "x", "c": 3}
 
 
