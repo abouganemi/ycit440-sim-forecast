@@ -31,8 +31,9 @@ per division and day, compared with the agreed baseline, on data it never saw wh
    7.84) while the same-weekday baseline's went up (8.57 → 9.08). The baseline kept forecasting
    the old level (bias +1.0); the ensemble's level-tracking members followed the drop faster.
 4. **The test result is in line with validation.** On 2022–2024 `ens_mean` was 0.63 below the
-   same-weekday baseline (7%); on the test it is 0.79 below (9%). The improvement sits inside the
-   5–10% the EDA estimated was available under the D−3 cutoff.
+   same-weekday baseline (7%); on the test it is 0.79 below (9%). The test MAE of 8.00 is still
+   above the noise floor of about 7.3–7.5 estimated for the D−3 cutoff
+   ([`baseline_report.md`](baseline_report.md)).
 5. **The models help only for the next few days.** On validation data the ensemble's advantage
    over the same-weekday mean shrinks from 0.63 at lead 1 to 0.29 at lead 7, and disappears at
    leads 14 and 30. On weekly totals it ties the baseline. The v2 daily target is where the
