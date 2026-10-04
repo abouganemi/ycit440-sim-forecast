@@ -14,12 +14,14 @@ history. ``Ensemble`` is the same combination as a ``Forecaster`` for later
 live or test use. Usage::
 
     uv run python -m ycit440_sim_forecast.ensemble validate
+    uv run python -m ycit440_sim_forecast.ensemble validate --horizon lead30
 """
 
 import copy
 import datetime as dt
 import hashlib
 import json
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,7 +45,11 @@ from ycit440_sim_forecast.models import (
     DEFAULT_PREDICTIONS,
     ENSEMBLE_CANDIDATES,
     REFERENCES,
+    V2_LABEL,
+    canonical_horizon,
     default_models,
+    horizon_path,
+    parse_horizon,
     rounded,
 )
 from ycit440_sim_forecast.seed import DEFAULT_SEED
@@ -566,6 +572,35 @@ def weights_summary(fits: Sequence[WeightFit]) -> dict[str, dict[str, float]]:
     }
 
 
+def wape(results: pl.DataFrame) -> dict[str, float]:
+    """Weighted absolute percentage error of each model on its scored rows.
+
+    ``sum |y_pred - y_true| / sum y_true``: MAE divided by the mean actual, so
+    it does not depend on the window length and daily and weekly settings
+    compare directly.
+
+    Args:
+        results: Rows with ``model``, ``y_pred`` and ``y_true``; rows with a
+            null ``y_true`` are not scored.
+
+    Returns:
+        WAPE per model, keys sorted; NaN when a model's actuals sum to 0.
+    """
+    table = (
+        results.filter(pl.col("y_true").is_not_null())
+        .group_by("model")
+        .agg(
+            abs_error=(pl.col("y_pred") - pl.col("y_true")).abs().sum(),
+            actual=pl.col("y_true").sum(),
+        )
+        .sort("model")
+    )
+    return {
+        model: abs_error / actual if actual else math.nan
+        for model, abs_error, actual in table.iter_rows()
+    }
+
+
 def best_single(results: pl.DataFrame, candidates: Sequence[str]) -> str:
     """Candidate with the lowest MAE on ``results``; ties go to the earlier name.
 
@@ -592,8 +627,8 @@ def ensemble_report(
 
     Returns:
         The report (config, config_id, input hash, ``FINAL_MODEL``, period,
-        overall, without
-        anomalies, by division, by month, by year, monthly weights of
+        overall, without anomalies, WAPE per model (see ``wape``), by
+        division, by month, by year, monthly weights of
         ``ens_weighted`` and their summary, and paired bootstraps of each
         method against each of ``REFERENCES`` and the best single candidate,
         floats rounded to 3) and the ensemble rows. Every model is scored on
@@ -641,6 +676,7 @@ def ensemble_report(
         },
         "overall": table(results),
         "overall_without_anomalies": table(clean),
+        "wape": wape(results),
         "by_division": table(results, ["DIVISION"]),
         "by_month": table(results, ["month"]),
         "by_year": table(with_year, ["year"]),
@@ -818,12 +854,26 @@ def main() -> None:
 @app.command()
 def validate(
     predictions: Annotated[
-        Path, typer.Option(help="Out-of-fold predictions parquet.")
-    ] = DEFAULT_PREDICTIONS,
-    out: Annotated[Path, typer.Option(help="JSON report path.")] = DEFAULT_OUT,
+        Path | None,
+        typer.Option(
+            help="Out-of-fold predictions parquet [default: from the horizon]."
+        ),
+    ] = None,
+    out: Annotated[
+        Path | None,
+        typer.Option(help="JSON report path [default: from the horizon]."),
+    ] = None,
     ensemble_predictions: Annotated[
-        Path, typer.Option(help="Parquet path for the ensemble predictions.")
-    ] = DEFAULT_ENSEMBLE_PREDICTIONS,
+        Path | None,
+        typer.Option(help="Ensemble predictions parquet [default: from the horizon]."),
+    ] = None,
+    horizon: Annotated[
+        str,
+        typer.Option(
+            callback=canonical_horizon,
+            help="Forecast setting: v2, weekly or lead<N>.",
+        ),
+    ] = V2_LABEL,
     start: Annotated[
         dt.datetime, typer.Option(formats=["%Y-%m-%d"], help="First scored day.")
     ] = _CLI_START,
@@ -833,33 +883,67 @@ def validate(
 ) -> None:
     """Validate the mean, median and weighted ensembles (2022-2024 by default).
 
+    Default paths depend on the horizon as in ``models validate``: v2 reads
+    ``data/processed/model_predictions_v2.parquet`` and writes
+    ``reports/ensemble_validation.json`` and
+    ``data/processed/ensemble_predictions_v2.parquet``; another label ``<h>``
+    uses ``model_predictions_<h>.parquet``, ``ensemble_validation_<h>.json``
+    and ``ensemble_predictions_<h>.parquet``.
+
     Args:
-        predictions: Out-of-fold predictions parquet.
-        out: JSON report path.
-        ensemble_predictions: Parquet path for the ensemble predictions.
+        predictions: Out-of-fold predictions parquet; defaults from the
+            horizon.
+        out: JSON report path; defaults from the horizon.
+        ensemble_predictions: Parquet path for the ensemble predictions;
+            defaults from the horizon.
+        horizon: Canonical horizon label (see ``models.parse_horizon``).
         start: First scored day.
         end: Last scored day.
 
     Raises:
-        typer.Exit: If the predictions parquet is missing.
+        typer.Exit: If the predictions parquet is missing or holds another
+            forecast setting than ``horizon``.
     """
+    predictions = (
+        horizon_path(DEFAULT_PREDICTIONS, horizon)
+        if predictions is None
+        else predictions
+    )
+    out = horizon_path(DEFAULT_OUT, horizon) if out is None else out
+    ensemble_predictions = (
+        horizon_path(DEFAULT_ENSEMBLE_PREDICTIONS, horizon)
+        if ensemble_predictions is None
+        else ensemble_predictions
+    )
+    rerun = (
+        f"`uv run python -m ycit440_sim_forecast.models validate --horizon {horizon}`"
+    )
     if not predictions.is_file():
+        typer.echo(f"{predictions} not found; run {rerun} first", err=True)
+        raise typer.Exit(code=1)
+    config = EnsembleConfig(
+        spec=parse_horizon(horizon), score_start=start.date(), score_end=end.date()
+    )
+    oof = pl.read_parquet(predictions)
+    specs = oof["spec"].unique().sort().to_list()
+    if specs != [config.spec.key]:
         typer.echo(
-            f"{predictions} not found; run "
-            "`uv run python -m ycit440_sim_forecast.models validate` first",
+            f"{predictions} holds predictions for spec {specs}, but --horizon "
+            f"{horizon} is {config.spec.key}; run {rerun} or pass the matching "
+            "--horizon",
             err=True,
         )
         raise typer.Exit(code=1)
-    config = EnsembleConfig(score_start=start.date(), score_end=end.date())
-    report, rows = ensemble_report(
-        pl.read_parquet(predictions), config, sha256_file(predictions)
-    )
+    report, rows = ensemble_report(oof, config, sha256_file(predictions))
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     ensemble_predictions.parent.mkdir(parents=True, exist_ok=True)
     rows.write_parquet(ensemble_predictions)
     clean = {row["model"]: row["mae"] for row in report["overall_without_anomalies"]}
-    typer.echo(f"config {report['config_id']}, scored {start.date()} to {end.date()}")
+    typer.echo(
+        f"config {report['config_id']}, horizon {horizon} ({config.spec.key}), "
+        f"scored {start.date()} to {end.date()}"
+    )
     for row in report["overall"]:
         typer.echo(
             f"{row['model']:<26} MAE {row['mae']:6.3f}  bias {row['bias']:+6.3f}  "

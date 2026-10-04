@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import polars as pl
 import pytest
+import typer
 from catboost import CatBoostRegressor, Pool
 from lightgbm import LGBMRegressor
 from polars.testing import assert_frame_equal
@@ -20,6 +21,7 @@ from ycit440_sim_forecast import evaluate as ev
 from ycit440_sim_forecast import features as ft
 from ycit440_sim_forecast import models as md
 from ycit440_sim_forecast import spec
+from ycit440_sim_forecast.baseline import SameWeekdayMean
 from ycit440_sim_forecast.spec import Forecaster, ForecastSpec
 
 runner = CliRunner()
@@ -27,7 +29,8 @@ FIRST = dt.date(2023, 1, 1)
 MISSING = dt.date(2024, 3, 31)
 START = dt.date(2024, 2, 1)
 END = dt.date(2024, 3, 10)
-PRESETS = [spec.V2_DAILY, spec.WEEKLY, *spec.daily_horizon(14)]
+LEAD30 = spec.ForecastSpec(lead_days=30)
+PRESETS = [spec.V2_DAILY, spec.WEEKLY, *spec.daily_horizon(14), LEAD30]
 REGISTERED_NAMES = [
     "lgbm_poisson",
     "lgbm_tweedie",
@@ -1101,3 +1104,267 @@ def test_cli_missing_input(tmp_path: Path) -> None:
     )
     assert result.exit_code == 1
     assert "not found" in result.output
+
+
+# Lead 30 and the other horizons
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [*spec.daily_horizon(60), spec.WEEKLY, ForecastSpec(lead_days=30, window_days=7)],
+    ids=lambda s: s.key,
+)
+def test_lookback_covers_every_feature_source(setting: ForecastSpec) -> None:
+    # The oldest day any feature reads is at most LOOKBACK before the cutoff,
+    # whatever the gap. A same-weekday mean over w weeks for a target day a
+    # days after the cutoff reads back to (-a mod 7) + 7 * (w - 1) days: the
+    # first source is the latest same weekday on or before the cutoff, so a
+    # longer lead does not reach further back.
+    issue = dt.date(2024, 5, 10)
+    cutoff = setting.cutoff(issue)
+    back = {
+        (day, w): max((cutoff - source).days for d, source in pairs if d == day)
+        for w in ft.SAME_WEEKDAY_WEEKS
+        for pairs in [SameWeekdayMean(w).source_dates(issue, setting)]
+        for day in setting.target_days(issue)
+    }
+    for (day, w), days in back.items():
+        assert days == (-(day - cutoff).days) % 7 + 7 * (w - 1)
+    assert max(back.values()) <= md.LOOKBACK.days == ft.MEAN_DAYS[-1] - 1
+
+
+def test_lookback_is_tight_for_same_weekday() -> None:
+    # gap_days 8 (lead 6): the first source is 6 days before the cutoff, so
+    # the 13th is exactly 90 days back. At lead 30 (gap 32) it is 87.
+    for lead, expected in ((6, 90), (30, 87), (1, 88)):
+        setting = ForecastSpec(lead_days=lead)
+        issue = dt.date(2024, 5, 10)
+        sources = SameWeekdayMean(13).source_dates(issue, setting)
+        oldest = max((setting.cutoff(issue) - s).days for _, s in sources)
+        assert oldest == expected
+
+
+def test_tail_one_day_shorter_changes_lead30_features(history: pl.DataFrame) -> None:
+    issue = FIRST + dt.timedelta(days=300)
+    cutoff = LEAD30.cutoff(issue)
+    shorter = history.filter(pl.col("date") > cutoff - md.LOOKBACK)
+    full = md.issue_rows(history, issue, LEAD30)
+    assert not full["mean_91d"].equals(
+        md.issue_rows(shorter, issue, LEAD30)["mean_91d"]
+    )
+
+
+def realistic_history(seed: int = 0) -> pl.DataFrame:
+    # Six divisions at different levels with a weekly pattern, a yearly wave,
+    # a level drop in the last quarter, Poisson noise and a missing day.
+    rng = np.random.default_rng(seed)
+    dates = pl.date_range(FIRST, dt.date(2024, 12, 31), "1d", eager=True)
+    weekday = dates.dt.weekday().to_numpy() - 1
+    doy = dates.dt.ordinal_day().to_numpy()
+    shape = WEEKLY_EFFECT[weekday] * (1 + 0.1 * np.sin(2 * np.pi * doy / 365.25))
+    shape = shape * np.where(dates.to_numpy() >= np.datetime64("2024-10-01"), 0.8, 1.0)
+    frames = []
+    for division, level in zip(md.DIVISIONS, (25, 40, 55, 30, 45, 70), strict=True):
+        n = rng.poisson(level * shape)
+        frames.append(
+            pl.DataFrame(
+                {
+                    "date": dates,
+                    "DIVISION": pl.Series([division] * len(dates), dtype=pl.Int64),
+                    "n": pl.Series(n, dtype=pl.UInt32),
+                    "n_fr": pl.Series(rng.binomial(n, 0.3), dtype=pl.UInt32),
+                }
+            )
+        )
+    return (
+        pl.concat(frames)
+        .with_columns(pl.when(pl.col("date") != MISSING).then(pl.col("n", "n_fr")))
+        .sort("date", "DIVISION")
+    )
+
+
+@pytest.mark.parametrize("setting", [LEAD30, spec.WEEKLY], ids=lambda s: s.key)
+def test_candidates_forecast_long_horizons(setting: ForecastSpec) -> None:
+    candidates = [m for m in light_models() if m.name in md.ENSEMBLE_CANDIDATES]
+    assert [m.name for m in candidates] == [
+        n for n in REGISTERED_NAMES if n in md.ENSEMBLE_CANDIDATES
+    ]
+    history = realistic_history()
+    start, end = dt.date(2024, 6, 1), dt.date(2024, 8, 31)
+    results = ev.rolling_origin(history, candidates, setting, start, end)
+    assert results["y_pred"].is_not_null().all()
+    assert results["y_true"].is_not_null().all()
+    assert (results["y_pred"] > 0).all()
+    table = ev.score(results).with_columns(
+        relative=pl.col("mae") / results["y_true"].mean()
+    )
+    assert set(table["model"]) == set(md.ENSEMBLE_CANDIDATES)
+    assert (table["relative"] < 0.3).all()
+
+
+@pytest.mark.parametrize("name", md.ENSEMBLE_CANDIDATES)
+def test_lead30_harness_ignores_counts_after_cutoff(
+    history: pl.DataFrame, name: str
+) -> None:
+    issue = dt.date(2024, 1, 20)
+    cutoff = LEAD30.cutoff(issue)
+    poisoned = history.with_columns(
+        pl.when(pl.col("date") > cutoff)
+        .then(pl.lit(10_000, dtype=pl.UInt32))
+        .otherwise(pl.col(c))
+        .alias(c)
+        for c in ("n", "n_fr")
+    )
+    runs = [
+        ev.rolling_origin(h, [by_name(name)], LEAD30, START, END)
+        .filter(pl.col("issue_date") <= issue)
+        .select("issue_date", "DIVISION", "y_pred")
+        for h in (history, poisoned)
+    ]
+    assert runs[0].height > 0
+    assert runs[0]["y_pred"].is_not_null().all()
+    assert_frame_equal(runs[0], runs[1])
+
+
+@pytest.mark.parametrize("name", md.ENSEMBLE_CANDIDATES)
+def test_lead30_predict_reads_only_up_to_cutoff(
+    history: pl.DataFrame, name: str
+) -> None:
+    issue = dt.date(2024, 5, 10)
+    cutoff = LEAD30.cutoff(issue)
+    model = by_name(name).fit(cut(history, cutoff), LEAD30)
+    poisoned = history.with_columns(
+        pl.when(pl.col("date") > cutoff)
+        .then(pl.lit(10_000, dtype=pl.UInt32))
+        .otherwise(pl.col(c))
+        .alias(c)
+        for c in ("n", "n_fr")
+    )
+    clean = model.predict(cut(history, cutoff), issue, LEAD30)
+    assert clean["y_pred"].is_not_null().all()
+    assert_frame_equal(clean, model.predict(poisoned, issue, LEAD30))
+
+
+@pytest.mark.parametrize(
+    ("label", "expected", "canonical"),
+    [
+        ("v2", spec.V2_DAILY, "v2"),
+        ("weekly", spec.WEEKLY, "weekly"),
+        ("lead1", spec.V2_DAILY, "v2"),
+        ("lead3", ForecastSpec(lead_days=3), "lead3"),
+        ("lead30", LEAD30, "lead30"),
+    ],
+)
+def test_parse_horizon(label: str, expected: ForecastSpec, canonical: str) -> None:
+    assert md.parse_horizon(label) == expected
+    assert md.horizon_label(expected) == canonical
+    assert md.canonical_horizon(label) == canonical
+    assert md.parse_horizon(canonical) == expected
+
+
+@pytest.mark.parametrize(
+    "label", ["", "V2", "daily", "lead", "lead0", "lead07", "lead-1", "lead3x"]
+)
+def test_parse_horizon_rejects(label: str) -> None:
+    with pytest.raises(ValueError, match="unknown horizon"):
+        md.parse_horizon(label)
+    with pytest.raises(typer.BadParameter, match="unknown horizon"):
+        md.canonical_horizon(label)
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [
+        ForecastSpec(publication_lag_days=3),
+        ForecastSpec(window_days=3),
+        ForecastSpec(lead_days=2, window_days=7),
+    ],
+    ids=lambda s: s.key,
+)
+def test_horizon_label_rejects(setting: ForecastSpec) -> None:
+    with pytest.raises(ValueError, match="no horizon label"):
+        md.horizon_label(setting)
+
+
+def test_horizon_path() -> None:
+    assert md.horizon_path(md.DEFAULT_OUT, "v2") == md.DEFAULT_OUT
+    assert md.horizon_path(md.DEFAULT_PREDICTIONS, "v2") == md.DEFAULT_PREDICTIONS
+    assert md.horizon_path(md.DEFAULT_OUT, "lead30") == Path(
+        "reports/models_validation_lead30.json"
+    )
+    assert md.horizon_path(md.DEFAULT_PREDICTIONS, "weekly") == Path(
+        "data/processed/model_predictions_weekly.parquet"
+    )
+
+
+def test_select_models() -> None:
+    models = md.default_models()
+    assert md.select_models(models, md.ModelSet.ALL) == models
+    chosen = md.select_models(models, md.ModelSet.CANDIDATES)
+    assert {m.name for m in chosen} == set(md.ENSEMBLE_CANDIDATES)
+    assert chosen == [m for m in models if m in chosen]
+    with pytest.raises(ValueError, match=r"missing from the models: \['ets_weekly'\]"):
+        md.select_models(
+            [m for m in models if m.name != "ets_weekly"], md.ModelSet.CANDIDATES
+        )
+
+
+def test_cli_validate_horizon_candidates_default_paths(
+    tmp_path: Path,
+    parquet_inputs: tuple[Path, Path],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pool = [*(by_name(n) for n in md.ENSEMBLE_CANDIDATES), by_name("nb_glm")]
+    monkeypatch.setattr(md, "default_models", lambda: pool)
+    monkeypatch.chdir(tmp_path)
+    history_path, anomalies_path = parquet_inputs
+    result = runner.invoke(
+        md.app,
+        [
+            "validate",
+            "--history",
+            str(history_path),
+            "--anomalies",
+            str(anomalies_path),
+            "--horizon",
+            "lead30",
+            "--models",
+            "candidates",
+            "--start",
+            "2024-02-01",
+            "--end",
+            "2024-02-10",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert "horizon lead30 (lag2_lead30_win1)" in result.output
+    report = json.loads(
+        (tmp_path / "reports/models_validation_lead30.json").read_text()
+    )
+    assert report["spec"] == LEAD30.key
+    names = {*md.ENSEMBLE_CANDIDATES, *md.REFERENCES}
+    assert {row["model"] for row in report["overall"]} == names
+    saved = pl.read_parquet(
+        tmp_path / "data/processed/model_predictions_lead30.parquet"
+    )
+    assert saved["spec"].unique().to_list() == [LEAD30.key]
+    assert set(saved["model"].unique()) == names
+    assert not (tmp_path / "reports/models_validation.json").exists()
+
+
+def test_cli_validate_rejects_bad_horizon(parquet_inputs: tuple[Path, Path]) -> None:
+    history_path, anomalies_path = parquet_inputs
+    result = runner.invoke(
+        md.app,
+        [
+            "validate",
+            "--history",
+            str(history_path),
+            "--anomalies",
+            str(anomalies_path),
+            "--horizon",
+            "monthly",
+        ],
+    )
+    assert result.exit_code == 2
+    assert "unknown horizon" in result.output

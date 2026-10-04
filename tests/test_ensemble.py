@@ -1,5 +1,6 @@
 import dataclasses
 import datetime as dt
+import json
 import math
 from collections.abc import Sequence
 from pathlib import Path
@@ -15,6 +16,7 @@ from typer.testing import CliRunner
 from ycit440_sim_forecast import ensemble as en
 from ycit440_sim_forecast import evaluate as ev
 from ycit440_sim_forecast.baseline import PlainMean, SameWeekdayMean
+from ycit440_sim_forecast.manifest import sha256_file
 from ycit440_sim_forecast.models import ENSEMBLE_CANDIDATES, REFERENCES
 from ycit440_sim_forecast.spec import V2_DAILY, WEEKLY, Forecaster, ForecastSpec
 
@@ -641,3 +643,107 @@ def test_rows_feed_paired_bootstrap(oof: pl.DataFrame) -> None:
     result = ev.paired_bootstrap(both, "ens_weighted", "a", n_boot=20)
     assert result["n_blocks"] > 0
     assert_frame_equal(rows, en.combine_oof(oof, CONFIG)[0])
+
+
+# Horizons and WAPE
+
+
+def test_wape_hand_values() -> None:
+    rows = pl.DataFrame(
+        {
+            "model": ["a", "a", "a", "b", "b", "z"],
+            "y_true": [10.0, 30.0, None, 10.0, 30.0, 0.0],
+            "y_pred": [12.0, 27.0, 99.0, 10.0, 30.0, 1.0],
+        }
+    )
+    got = en.wape(rows)
+    assert list(got) == ["a", "b", "z"]
+    assert got["a"] == pytest.approx(5 / 40)
+    assert got["b"] == 0.0
+    assert math.isnan(got["z"])
+
+
+def test_report_wape_matches_mae_over_mean_actual() -> None:
+    full = make_oof((*NAMES, *REFERENCES))
+    report, rows = en.ensemble_report(full, CONFIG, "abc")
+    mean_actual = rows.filter(pl.col("model") == "ens_mean")["y_true"].mean()
+    assert isinstance(mean_actual, float)
+    assert set(report["wape"]) == {row["model"] for row in report["overall"]}
+    for row in report["overall"]:
+        assert report["wape"][row["model"]] == pytest.approx(
+            row["mae"] / mean_actual, abs=2e-3
+        )
+
+
+def test_cli_validate_rejects_other_horizon(tmp_path: Path) -> None:
+    predictions = make_cli_parquet(tmp_path / "oof.parquet")
+    result = runner.invoke(
+        en.app,
+        [
+            "validate",
+            "--predictions",
+            str(predictions),
+            "--out",
+            str(tmp_path / "report.json"),
+            "--horizon",
+            "weekly",
+        ],
+    )
+    assert result.exit_code == 1
+    assert "holds predictions for spec ['lag2_lead1_win1']" in result.output
+    assert "--horizon weekly is lag2_lead1_win7" in result.output
+    assert not (tmp_path / "report.json").exists()
+
+
+def test_cli_validate_rejects_bad_horizon(tmp_path: Path) -> None:
+    result = runner.invoke(en.app, ["validate", "--horizon", "lead0"])
+    assert result.exit_code == 2
+    assert "unknown horizon" in result.output
+
+
+def test_cli_validate_horizon_default_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Weekly windows from the daily synthetic rows: only the spec key and the
+    # window end matter to the ensemble. The parquet holds only the candidates
+    # and the references, as `models validate --models candidates` writes.
+    monkeypatch.chdir(tmp_path)
+    source = Path("data/processed/model_predictions_weekly.parquet")
+    source.parent.mkdir(parents=True)
+    weekly = pl.read_parquet(make_cli_parquet(tmp_path / "oof.parquet")).with_columns(
+        spec=pl.lit(WEEKLY.key), target_end=pl.col("target_start") + pl.duration(days=6)
+    )
+    weekly.write_parquet(source)
+    result = runner.invoke(
+        en.app, ["validate", "--horizon", "weekly", "--end", "2022-04-30"]
+    )
+    assert result.exit_code == 0, result.output
+    assert "horizon weekly (lag2_lead1_win7)" in result.output
+    report = json.loads(Path("reports/ensemble_validation_weekly.json").read_text())
+    assert report["config"]["spec"]["key"] == WEEKLY.key
+    assert report["input_sha256"] == sha256_file(source)
+    assert set(report["wape"]) == {
+        *ENSEMBLE_CANDIDATES,
+        *REFERENCES,
+        "ens_mean",
+        "ens_median",
+        "ens_weighted",
+    }
+    rows = pl.read_parquet("data/processed/ensemble_predictions_weekly.parquet")
+    assert rows["spec"].unique().to_list() == [WEEKLY.key]
+    assert not Path("reports/ensemble_validation.json").exists()
+
+
+def test_cli_missing_parquet_names_horizon(tmp_path: Path) -> None:
+    result = runner.invoke(
+        en.app,
+        [
+            "validate",
+            "--horizon",
+            "lead7",
+            "--predictions",
+            str(tmp_path / "missing.parquet"),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "models validate --horizon lead7" in result.output

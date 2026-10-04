@@ -16,19 +16,25 @@ refits. ``TopDown`` forecasts the citywide total and splits it by recent
 division shares.
 
 Model specs are plain configuration; ``fit`` builds a fresh estimator each
-time. ``default_models`` lists the configurations that get validated. Usage::
+time. ``default_models`` lists the configurations that get validated. A
+forecast setting is named by a horizon label (``v2``, ``weekly`` or
+``lead<N>``, see ``parse_horizon``). Usage::
 
     uv run python -m ycit440_sim_forecast.models validate
+    uv run python -m ycit440_sim_forecast.models validate --horizon lead30 \
+        --models candidates
 """
 
 import copy
 import datetime as dt
 import json
 import math
+import re
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self, cast
@@ -58,7 +64,7 @@ from ycit440_sim_forecast.evaluate import (
     score,
 )
 from ycit440_sim_forecast.seed import DEFAULT_SEED
-from ycit440_sim_forecast.spec import V2_DAILY, Forecaster, ForecastSpec
+from ycit440_sim_forecast.spec import V2_DAILY, WEEKLY, Forecaster, ForecastSpec
 
 DIVISIONS: tuple[int, ...] = (1, 2, 3, 4, 5, 6)
 """Fixed division levels, so categorical codes match between fit and predict."""
@@ -166,9 +172,138 @@ LIBRARIES: tuple[str, ...] = (
 _CLI_START = dt.datetime.combine(VALIDATION_START, dt.time())
 _CLI_END = dt.datetime.combine(VALIDATION_END, dt.time())
 
+V2_LABEL = "v2"
+"""Horizon label of ``V2_DAILY``; its default file paths carry no extra suffix."""
+
+_LEAD_LABEL = re.compile(r"lead([1-9][0-9]*)")
+
+
+class ModelSet(StrEnum):
+    """Which models ``validate`` runs besides the two baselines."""
+
+    ALL = "all"
+    CANDIDATES = "candidates"
+
+
 type Booster = LGBMRegressor | XGBRegressor | CatBoostRegressor
 
 app = typer.Typer(help=__doc__, no_args_is_help=True)
+
+
+def parse_horizon(label: str) -> ForecastSpec:
+    """The forecast setting named by a horizon label.
+
+    Args:
+        label: ``v2`` (``V2_DAILY``), ``weekly`` (``WEEKLY``) or ``lead<N>``
+            with ``N >= 1`` (one day, ``N`` days after the issue date, with
+            the v2 publication lag; ``lead1`` is ``V2_DAILY``).
+
+    Returns:
+        The matching ``ForecastSpec``.
+
+    Raises:
+        ValueError: If the label is none of these.
+    """
+    match label:
+        case "v2":
+            return V2_DAILY
+        case "weekly":
+            return WEEKLY
+    found = _LEAD_LABEL.fullmatch(label)
+    if found is None:
+        msg = f"unknown horizon {label!r}; expected 'v2', 'weekly' or 'lead<N>', N >= 1"
+        raise ValueError(msg)
+    return ForecastSpec(lead_days=int(found[1]))
+
+
+def horizon_label(spec: ForecastSpec) -> str:
+    """Canonical horizon label of a forecast setting, the inverse of ``parse_horizon``.
+
+    Args:
+        spec: Forecast setting.
+
+    Returns:
+        ``v2`` for ``V2_DAILY`` (so also for lead 1), ``weekly`` for
+        ``WEEKLY``, else ``lead<N>``.
+
+    Raises:
+        ValueError: If ``spec`` has no label: a publication lag other than
+            the v2 one, or a window that is neither 1 day nor ``WEEKLY``.
+    """
+    if spec == V2_DAILY:
+        return V2_LABEL
+    if spec == WEEKLY:
+        return "weekly"
+    if spec == ForecastSpec(lead_days=spec.lead_days):
+        return f"lead{spec.lead_days}"
+    msg = f"no horizon label for spec {spec.key}"
+    raise ValueError(msg)
+
+
+def canonical_horizon(label: str) -> str:
+    """Validate a horizon label and return its canonical spelling.
+
+    Used as the ``--horizon`` option callback, so a bad label is a usage error.
+
+    Args:
+        label: Horizon label as typed.
+
+    Returns:
+        ``horizon_label(parse_horizon(label))``, e.g. ``v2`` for ``lead1``.
+
+    Raises:
+        typer.BadParameter: If ``parse_horizon`` rejects the label.
+    """
+    try:
+        return horizon_label(parse_horizon(label))
+    except ValueError as error:
+        raise typer.BadParameter(str(error)) from error
+
+
+def horizon_path(path: Path, label: str) -> Path:
+    """The v2 default ``path`` adapted to the horizon ``label``.
+
+    For ``v2`` the path is returned unchanged. Otherwise a ``_v2`` suffix of
+    the file stem is replaced by ``_<label>``, or ``_<label>`` is appended,
+    e.g. ``models_validation.json`` becomes ``models_validation_lead30.json``.
+
+    Args:
+        path: Default path of the v2 setting.
+        label: Canonical horizon label.
+
+    Returns:
+        The path for ``label``.
+    """
+    if label == V2_LABEL:
+        return path
+    stem = path.stem.removesuffix(f"_{V2_LABEL}")
+    return path.with_name(f"{stem}_{label}{path.suffix}")
+
+
+def select_models(
+    models: Sequence[Forecaster], model_set: ModelSet
+) -> list[Forecaster]:
+    """The models of ``model_set``, in the order of ``models``.
+
+    Args:
+        models: Candidate pool, normally ``default_models()``.
+        model_set: ``all`` keeps every model; ``candidates`` keeps those in
+            ``ENSEMBLE_CANDIDATES``.
+
+    Returns:
+        The kept models.
+
+    Raises:
+        ValueError: If ``candidates`` is asked for and one is missing from
+            ``models``.
+    """
+    if model_set == ModelSet.ALL:
+        return list(models)
+    missing = sorted(set(ENSEMBLE_CANDIDATES) - {m.name for m in models})
+    if missing:
+        msg = f"ensemble candidates missing from the models: {missing}"
+        raise ValueError(msg)
+    return [m for m in models if m.name in ENSEMBLE_CANDIDATES]
 
 
 def training_rows(history: pl.DataFrame, spec: ForecastSpec) -> pl.DataFrame:
@@ -1443,10 +1578,27 @@ def validate(
     anomalies_path: Annotated[
         Path, typer.Option("--anomalies", help="Anomaly calendar parquet.")
     ] = DEFAULT_ANOMALIES,
-    out: Annotated[Path, typer.Option(help="JSON report path.")] = DEFAULT_OUT,
+    out: Annotated[
+        Path | None,
+        typer.Option(help="JSON report path [default: from the horizon]."),
+    ] = None,
     predictions: Annotated[
-        Path, typer.Option(help="Parquet path for the raw predictions.")
-    ] = DEFAULT_PREDICTIONS,
+        Path | None,
+        typer.Option(
+            help="Parquet path for the raw predictions [default: from the horizon]."
+        ),
+    ] = None,
+    horizon: Annotated[
+        str,
+        typer.Option(
+            callback=canonical_horizon,
+            help="Forecast setting: v2, weekly or lead<N>.",
+        ),
+    ] = V2_LABEL,
+    models: Annotated[
+        ModelSet,
+        typer.Option(help="Models besides the baselines: all, or the candidates."),
+    ] = ModelSet.ALL,
     start: Annotated[
         dt.datetime, typer.Option(formats=["%Y-%m-%d"], help="First target day.")
     ] = _CLI_START,
@@ -1454,13 +1606,23 @@ def validate(
         dt.datetime, typer.Option(formats=["%Y-%m-%d"], help="Last target day.")
     ] = _CLI_END,
 ) -> None:
-    """Validate every default model and both baselines on v2 (2021-2024 by default).
+    """Validate the default models and both baselines (2021-2024 by default).
+
+    Default paths depend on the horizon: v2 keeps
+    ``reports/models_validation.json`` and
+    ``data/processed/model_predictions_v2.parquet``; another label ``<h>``
+    writes ``reports/models_validation_<h>.json`` and
+    ``data/processed/model_predictions_<h>.parquet``.
 
     Args:
         history_path: Division-day parquet.
         anomalies_path: Anomaly calendar parquet.
-        out: JSON report path.
-        predictions: Parquet path for the raw predictions.
+        out: JSON report path; defaults from the horizon.
+        predictions: Parquet path for the raw predictions; defaults from the
+            horizon.
+        horizon: Canonical horizon label (see ``parse_horizon``).
+        models: ``all`` default models, or only ``ENSEMBLE_CANDIDATES``; the
+            baselines ``same_wd_13w`` and ``plain_28d`` always run.
         start: First target day.
         end: Last target day.
 
@@ -1471,18 +1633,26 @@ def validate(
         if not path.is_file():
             typer.echo(f"{path} not found; run notebooks/01_eda.ipynb first", err=True)
             raise typer.Exit(code=1)
+    out = horizon_path(DEFAULT_OUT, horizon) if out is None else out
+    predictions = (
+        horizon_path(DEFAULT_PREDICTIONS, horizon)
+        if predictions is None
+        else predictions
+    )
     report, results = models_report(
         pl.read_parquet(history_path),
         pl.read_parquet(anomalies_path),
-        default_models(),
+        select_models(default_models(), models),
         start.date(),
         end.date(),
+        parse_horizon(horizon),
     )
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     predictions.parent.mkdir(parents=True, exist_ok=True)
     results.write_parquet(predictions)
     clean = {row["model"]: row["mae"] for row in report["overall_without_anomalies"]}
+    typer.echo(f"horizon {horizon} ({report['spec']})")
     for row in report["overall"]:
         typer.echo(
             f"{row['model']:<26} MAE {row['mae']:6.3f}  bias {row['bias']:+6.3f}  "
