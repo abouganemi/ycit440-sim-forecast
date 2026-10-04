@@ -1,3 +1,12 @@
+# [1.5.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.4.0...v1.5.0) (2026-10-04)
+
+
+### Features
+
+* **holdout:** add one-shot test-period evaluation ([94d82c1](https://github.com/abouganemi/ycit440-sim-forecast/commit/94d82c11a1393ad0c4254f15094ea4dc79415c89))
+* **horizons:** add horizon comparison command ([1ed278a](https://github.com/abouganemi/ycit440-sim-forecast/commit/1ed278ae31976d2dae70e624193110602bc5a38d))
+* **models:** add forecast horizon CLI setting ([a1a035e](https://github.com/abouganemi/ycit440-sim-forecast/commit/a1a035e9182480cdbd58d212f6ba83bd91a94493))
+
 # [1.4.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.3.0...v1.4.0) (2026-10-04)
 
 
