@@ -2194,6 +2194,18 @@
     "end": "2024-12-31",
     "start": "2022-01-01"
   },
+  "wape": {
+    "cat_tweedie": 0.158,
+    "ens_mean": 0.153,
+    "ens_median": 0.155,
+    "ens_weighted": 0.154,
+    "ets_weekly": 0.163,
+    "lgbm_poisson": 0.16,
+    "lgbm_poisson_raw": 0.158,
+    "plain_28d": 0.167,
+    "same_wd_13w": 0.165,
+    "topdown_ets": 0.165
+  },
   "weights_by_month": {
     "2021-12": {
       "cutoff": "2021-11-29",

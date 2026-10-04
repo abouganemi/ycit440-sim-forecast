@@ -13,7 +13,8 @@ from ycit440_sim_forecast.spec import ForecastSpec
 
 FIRST = dt.date(2023, 1, 1)
 MISSING = dt.date(2024, 3, 31)
-PRESETS = [spec.V2_DAILY, spec.WEEKLY, *spec.daily_horizon(14)]
+LEAD30 = spec.ForecastSpec(lead_days=30)
+PRESETS = [spec.V2_DAILY, spec.WEEKLY, *spec.daily_horizon(14), LEAD30]
 # Early dates (windows still filling), dates around the missing day, the end.
 ISSUES = [
     FIRST + dt.timedelta(days=d)
