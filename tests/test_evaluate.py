@@ -244,8 +244,41 @@ def results_frame() -> pl.DataFrame:
 
 def test_score_mae_and_bias() -> None:
     table = ev.score(results_frame())
+    assert table.columns == [
+        "model",
+        "n",
+        "mae",
+        "bias",
+        "median_error",
+        "under_share",
+    ]
     a = table.filter(pl.col("model") == "a").row(0, named=True)
-    assert a == {"model": "a", "n": 2, "mae": 3.0, "bias": -1.0}
+    assert a == {
+        "model": "a",
+        "n": 2,
+        "mae": 3.0,
+        "bias": -1.0,
+        "median_error": -1.0,
+        "under_share": 0.5,
+    }
+
+
+def test_score_median_error_and_under_share() -> None:
+    # Errors (y_pred - y_true) 3, -1, -2, -6 and 0: median -1; 3 of 5 under.
+    # The row without truth is not scored, and a zero error is not under.
+    frame = pl.DataFrame(
+        {
+            "model": ["m"] * 6,
+            "target_start": [dt.date(2024, 1, d) for d in range(1, 7)],
+            "y_true": [10.0, 10.0, 10.0, 10.0, 10.0, None],
+            "y_pred": [13.0, 9.0, 8.0, 4.0, 10.0, 1.0],
+        }
+    )
+    row = ev.score(frame).row(0, named=True)
+    assert row["n"] == 5
+    assert row["bias"] == pytest.approx(-1.2)
+    assert row["median_error"] == -1.0
+    assert row["under_share"] == pytest.approx(0.6)
 
 
 def test_score_by_month() -> None:
@@ -330,6 +363,14 @@ def test_cli_baselines(tmp_path: Path, parquet_inputs: tuple[Path, Path]) -> Non
     n_clean = {row["model"]: row["n"] for row in v2["overall_without_anomalies"]}
     assert all(n_clean[m] == n_all[m] - 2 for m in n_all)  # one day, two divisions
     assert len(v2["candidates"]) == len(ev.SAME_WEEKDAY_WEEKS) + 1
+    assert set(v2["overall"][0]) == {
+        "model",
+        "n",
+        "mae",
+        "bias",
+        "median_error",
+        "under_share",
+    }
     assert "wrote" in result.output
 
 
@@ -343,3 +384,70 @@ def test_cli_missing_input(tmp_path: Path) -> None:
 
 def test_baseline_names_are_valid_candidates() -> None:
     assert SameWeekdayMean(weeks=13).name.startswith("same_wd_")
+
+
+def bootstrap_frame(shift: float = 0.0, seed: int = 0) -> pl.DataFrame:
+    # Two models over ten weeks and three divisions; "b" errs by 2 or 3 per row,
+    # "a" by ``shift`` less on every row.
+    rng = np.random.default_rng(seed)
+    days = pl.date_range(dt.date(2024, 1, 1), dt.date(2024, 3, 10), "1d", eager=True)
+    base = (
+        pl.DataFrame({"target_start": days})
+        .join(pl.DataFrame({"DIVISION": [1, 2, 3]}), how="cross")
+        .with_columns(
+            issue_date=pl.col("target_start") - pl.duration(days=1),
+            y_true=pl.lit(50.0),
+        )
+    )
+    err = rng.choice([2.0, 3.0], size=base.height)
+    return pl.concat(
+        [
+            base.with_columns(model=pl.lit("b"), y_pred=50.0 + pl.Series(err)),
+            base.with_columns(model=pl.lit("a"), y_pred=50.0 + pl.Series(err - shift)),
+        ]
+    )
+
+
+def test_paired_bootstrap_identical_models() -> None:
+    got = ev.paired_bootstrap(bootstrap_frame(), "a", "b", n_boot=200)
+    assert got["diff"] == 0.0
+    assert (got["ci_low"], got["ci_high"]) == (0.0, 0.0)
+    assert got["n_blocks"] == 10  # ISO weeks 1 to 10 of 2024
+    assert got["model"] == "a"
+    assert got["reference"] == "b"
+
+
+def test_paired_bootstrap_uniformly_better() -> None:
+    got = ev.paired_bootstrap(bootstrap_frame(shift=1.0), "a", "b", n_boot=200)
+    assert got["diff"] == pytest.approx(-1.0)
+    assert got["ci_low"] == pytest.approx(-1.0)
+    assert got["ci_high"] == pytest.approx(-1.0)
+    assert got["mae_reference"] - got["mae_model"] == pytest.approx(1.0)
+
+
+def test_paired_bootstrap_is_deterministic_and_seeded() -> None:
+    # Noisy differences so the interval has width.
+    frame = bootstrap_frame()
+    noise = pl.Series(np.random.default_rng(1).uniform(0, 5, frame.height))
+    frame = frame.with_columns(
+        y_pred=pl.when(pl.col("model") == "a").then(50.0 + noise).otherwise("y_pred")
+    )
+    first = ev.paired_bootstrap(frame, "a", "b", n_boot=500, seed=7)
+    assert first == ev.paired_bootstrap(frame, "a", "b", n_boot=500, seed=7)
+    assert first["ci_low"] < first["diff"] < first["ci_high"]
+    assert first != ev.paired_bootstrap(frame, "a", "b", n_boot=500, seed=8)
+
+
+def test_paired_bootstrap_skips_unscored_rows() -> None:
+    frame = bootstrap_frame(shift=1.0).with_columns(
+        y_true=pl.when(pl.col("DIVISION") == 3).then(None).otherwise("y_true")
+    )
+    got = ev.paired_bootstrap(frame, "a", "b", n_boot=50)
+    assert got["diff"] == pytest.approx(-1.0)
+
+
+def test_paired_bootstrap_rejects_bad_input() -> None:
+    with pytest.raises(ValueError, match="block"):
+        ev.paired_bootstrap(bootstrap_frame(), "a", "b", block="day")  # pyright: ignore[reportArgumentType]
+    with pytest.raises(ValueError, match="no scored rows"):
+        ev.paired_bootstrap(bootstrap_frame(), "a", "missing")

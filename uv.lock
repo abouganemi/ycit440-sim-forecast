@@ -1093,6 +1093,7 @@ dependencies = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "scikit-learn" },
+    { name = "statsmodels" },
     { name = "typer" },
     { name = "xgboost-cpu" },
 ]
@@ -1109,7 +1110,6 @@ dev = [
 eda = [
     { name = "matplotlib" },
     { name = "seaborn" },
-    { name = "statsmodels" },
 ]
 gpu = [
     { name = "torch" },
@@ -1126,6 +1126,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1.44.2" },
     { name = "pyarrow", specifier = ">=25.0.1" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+    { name = "statsmodels", specifier = ">=0.15.0" },
     { name = "typer", specifier = ">=0.27.2" },
     { name = "xgboost-cpu", specifier = ">=3.4.1" },
 ]
@@ -1142,7 +1143,6 @@ dev = [
 eda = [
     { name = "matplotlib", specifier = ">=3.11.2" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "statsmodels", specifier = ">=0.15.0" },
 ]
 gpu = [
     { name = "torch", specifier = ">=2.14.0", index = "https://download.pytorch.org/whl/rocm7.2" },
