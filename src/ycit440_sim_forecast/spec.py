@@ -60,24 +60,60 @@ class ForecastSpec:
         return self.publication_lag_days + self.lead_days
 
     def cutoff(self, issue_date: dt.date) -> dt.date:
-        """Last day whose count is known on ``issue_date``."""
+        """Last day whose count is known on ``issue_date``.
+
+        Args:
+            issue_date: Day the forecast is issued.
+
+        Returns:
+            ``issue_date - publication_lag_days``.
+        """
         return issue_date - dt.timedelta(days=self.publication_lag_days)
 
     def target_start(self, issue_date: dt.date) -> dt.date:
-        """First target day of the forecast issued on ``issue_date``."""
+        """First target day of the forecast issued on ``issue_date``.
+
+        Args:
+            issue_date: Day the forecast is issued.
+
+        Returns:
+            ``issue_date + lead_days``.
+        """
         return issue_date + dt.timedelta(days=self.lead_days)
 
     def target_end(self, issue_date: dt.date) -> dt.date:
-        """Last target day (inclusive) of the forecast issued on ``issue_date``."""
+        """Last target day (inclusive) of the forecast issued on ``issue_date``.
+
+        Args:
+            issue_date: Day the forecast is issued.
+
+        Returns:
+            ``issue_date + lead_days + window_days - 1``.
+        """
         return issue_date + dt.timedelta(days=self.lead_days + self.window_days - 1)
 
     def target_days(self, issue_date: dt.date) -> list[dt.date]:
-        """Every target day of the forecast issued on ``issue_date``, in order."""
+        """Every target day of the forecast issued on ``issue_date``, in order.
+
+        Args:
+            issue_date: Day the forecast is issued.
+
+        Returns:
+            ``window_days`` consecutive days from ``target_start`` to
+            ``target_end``.
+        """
         start = self.target_start(issue_date)
         return [start + dt.timedelta(days=i) for i in range(self.window_days)]
 
     def issue_date_for(self, target_start: dt.date) -> dt.date:
-        """Issue date whose window starts on ``target_start``."""
+        """Issue date whose window starts on ``target_start``.
+
+        Args:
+            target_start: First target day.
+
+        Returns:
+            ``target_start - lead_days``.
+        """
         return target_start - dt.timedelta(days=self.lead_days)
 
 
@@ -120,13 +156,27 @@ class Forecaster(Protocol):
         ...
 
     def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
-        """Learn from ``history``; must reset any state from an earlier call."""
+        """Learn from ``history``; must reset any state from an earlier call.
+
+        Args:
+            history: ``date, DIVISION, n`` up to the cutoff of the issue date
+                the fit happens on.
+            spec: Forecast setting.
+
+        Returns:
+            This forecaster.
+        """
         ...
 
     def predict(
         self, history: pl.DataFrame, issue_date: dt.date, spec: ForecastSpec
     ) -> pl.DataFrame:
         """Forecast the window of ``issue_date`` for every division.
+
+        Args:
+            history: ``date, DIVISION, n`` up to the cutoff of ``issue_date``.
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
 
         Returns:
             ``DIVISION, y_pred`` with one row per division in ``history``;

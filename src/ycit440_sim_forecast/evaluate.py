@@ -61,6 +61,9 @@ app = typer.Typer(help=__doc__, no_args_is_help=True)
 def validate_history(history: pl.DataFrame) -> None:
     """Check the ``date, DIVISION, n`` contract the forecasters rely on.
 
+    Args:
+        history: Frame to check.
+
     Raises:
         ValueError: If columns or dtypes are wrong, a key repeats, or a
             division's calendar has a gap (a missing day must be a null row).
@@ -92,6 +95,14 @@ def issue_dates(start: dt.date, end: dt.date, spec: ForecastSpec) -> list[dt.dat
     windows start on Mondays, so the forecast is issued the day before the
     week (for lead 1).
 
+    Args:
+        start: First target day allowed.
+        end: Last target day allowed.
+        spec: Forecast setting.
+
+    Returns:
+        Issue dates in order; empty when no whole window fits.
+
     Raises:
         ValueError: If ``end`` is before ``start``.
     """
@@ -113,6 +124,11 @@ def actuals(
     history: pl.DataFrame, dates: Sequence[dt.date], spec: ForecastSpec
 ) -> pl.DataFrame:
     """Observed totals over each forecast's window.
+
+    Args:
+        history: ``date, DIVISION, n`` on the full calendar.
+        dates: Issue dates of the forecasts.
+        spec: Forecast setting.
 
     Returns:
         ``issue_date, DIVISION, y_true``; ``y_true`` is null when any day of the
@@ -164,9 +180,11 @@ def rolling_origin(
         ``y_true`` is null for windows touching a missing day.
 
     Raises:
-        ValueError: If the period reaches the test set without ``allow_test``,
-            names repeat, a forecaster returns the wrong divisions, or it gives
-            a null forecast for a window that will be scored.
+        ValueError: If ``history`` fails ``validate_history``, ``end`` is
+            before ``start``, the period reaches the test set without
+            ``allow_test``, names repeat, a forecaster returns the wrong
+            divisions, or it gives a null forecast for a window that will be
+            scored.
     """
     validate_history(history)
     if end >= TEST_START and not allow_test:
@@ -237,6 +255,10 @@ def flag_anomalies(results: pl.DataFrame, anomalies: pl.DataFrame) -> pl.DataFra
     Args:
         results: Output of ``rolling_origin``.
         anomalies: ``date, DIVISION, anomaly`` (the EDA anomaly calendar).
+
+    Returns:
+        ``results`` with a boolean ``anomaly`` column, false when no target
+        day is flagged.
     """
     flagged = anomalies.filter(pl.col("anomaly")).select("date", "DIVISION")
     keys = results.select(
@@ -386,6 +408,14 @@ def select_window(results: pl.DataFrame, prefix: str = "same_wd_") -> str:
 
     Ties go to the shorter window, so the choice is deterministic.
 
+    Args:
+        results: Output of ``rolling_origin``.
+        prefix: Start of the candidate model names; the first number in a
+            name is its window length.
+
+    Returns:
+        The chosen model name.
+
     Raises:
         ValueError: If no model name starts with ``prefix``.
     """
@@ -407,12 +437,23 @@ def baseline_report(
 ) -> dict[str, Any]:
     """Validate both baselines for each setting and choose the same-weekday window.
 
+    Args:
+        history: ``date, DIVISION, n`` on the full calendar.
+        anomalies: ``date, DIVISION, anomaly`` (the EDA anomaly calendar).
+        specs: Forecast settings to validate.
+        start: First target day scored.
+        end: Last target day scored.
+
     Returns:
-        Per setting: the chosen window, then overall, per-division and
-        per-month MAE, bias, median error and share under actual for the
-        chosen same-weekday model and the plain 28-day mean, with and without
-        windows touching an anomaly day, plus the overall score of every
-        candidate window.
+        The period, then per setting (keyed by ``spec.key``): its timing, the
+        chosen window, the overall score of every candidate window, and the
+        MAE, bias, median error and share under actual of the chosen
+        same-weekday model and the plain 28-day mean: overall and per
+        division, each with and without windows touching an anomaly day, and
+        per month with all windows. Scores are rounded to 3.
+
+    Raises:
+        ValueError: From ``rolling_origin``.
     """
     report: dict[str, Any] = {
         "period": {"start": str(start), "end": str(end)},
@@ -476,7 +517,19 @@ def baselines(
         dt.datetime, typer.Option(formats=["%Y-%m-%d"], help="Last target day.")
     ] = _CLI_END,
 ) -> None:
-    """Validate both baselines (2021-2024 by default) for v2, weekly and leads 2..N."""
+    """Validate both baselines (2021-2024 by default) for v2, weekly and leads 2..N.
+
+    Args:
+        history_path: Division-day parquet.
+        anomalies_path: Anomaly calendar parquet.
+        out: JSON report path.
+        horizon: Daily leads 1..N to add.
+        start: First target day.
+        end: Last target day.
+
+    Raises:
+        typer.Exit: If the history or anomaly parquet is missing.
+    """
     for path in (history_path, anomalies_path):
         if not path.is_file():
             typer.echo(f"{path} not found; run notebooks/01_eda.ipynb first", err=True)

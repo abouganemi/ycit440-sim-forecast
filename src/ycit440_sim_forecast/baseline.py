@@ -22,6 +22,14 @@ MIN_SHARE = 0.7
 
 
 def _divisions(history: pl.DataFrame) -> pl.DataFrame:
+    """Divisions present in ``history``.
+
+    Args:
+        history: Frame with a ``DIVISION`` column.
+
+    Returns:
+        ``DIVISION``, one row per division, sorted.
+    """
     return history.select(pl.col("DIVISION").unique().sort())
 
 
@@ -55,7 +63,15 @@ class PlainMean:
         return f"plain_{self.days}d"
 
     def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
-        """Nothing to learn."""
+        """Nothing to learn.
+
+        Args:
+            history: Unused.
+            spec: Unused.
+
+        Returns:
+            This forecaster.
+        """
         return self
 
     def predict(
@@ -63,8 +79,15 @@ class PlainMean:
     ) -> pl.DataFrame:
         """Forecast the window of ``issue_date``.
 
+        Args:
+            history: ``date, DIVISION, n`` on the full calendar; only the
+                ``days`` days ending at the cutoff are read.
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
+
         Returns:
-            ``DIVISION, y_pred`` for every division in ``history``.
+            ``DIVISION, y_pred`` for every division in ``history``, sorted;
+            null when the window has fewer than ``min_samples`` values.
         """
         cutoff = spec.cutoff(issue_date)
         start = cutoff - dt.timedelta(days=self.days - 1)
@@ -123,13 +146,25 @@ class SameWeekdayMean:
         return f"same_wd_{self.weeks}w"
 
     def fit(self, history: pl.DataFrame, spec: ForecastSpec) -> Self:
-        """Nothing to learn."""
+        """Nothing to learn.
+
+        Args:
+            history: Unused.
+            spec: Unused.
+
+        Returns:
+            This forecaster.
+        """
         return self
 
     def source_dates(
         self, issue_date: dt.date, spec: ForecastSpec
     ) -> list[tuple[dt.date, dt.date]]:
         """Pairs of ``(target_day, source_day)`` the forecast averages.
+
+        Args:
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
 
         Returns:
             ``weeks`` source days per target day, newest first; every source
@@ -150,9 +185,15 @@ class SameWeekdayMean:
     ) -> pl.DataFrame:
         """Forecast the window of ``issue_date``.
 
+        Args:
+            history: ``date, DIVISION, n`` on the full calendar; only the days
+                from ``source_dates`` are read.
+            issue_date: Day the forecast is issued.
+            spec: Forecast setting.
+
         Returns:
-            ``DIVISION, y_pred`` for every division in ``history``; null when
-            any target day has fewer than ``min_samples`` values.
+            ``DIVISION, y_pred`` for every division in ``history``, sorted;
+            null when any target day has fewer than ``min_samples`` values.
         """
         target, source = zip(*self.source_dates(issue_date, spec), strict=True)
         lookup = pl.DataFrame(
