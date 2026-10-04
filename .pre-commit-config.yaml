@@ -9,11 +9,12 @@ repos:
         args: [feat, fix, build, chore, ci, docs, perf, refactor, revert, style, test]
   - repo: builtin
     hooks:
-      # docs/source/ holds official portal files saved byte-for-byte; never rewrite them.
+      # docs/source/ holds official portal files saved byte-for-byte, and data/ holds the raw
+      # CSVs whose sha256 is in data/manifest.json; never rewrite either.
       - id: end-of-file-fixer
-        exclude: ^docs/source/
+        exclude: ^(docs/source|data)/
       - id: trailing-whitespace
-        exclude: ^docs/source/
+        exclude: ^(docs/source|data)/
       - id: check-yaml
         args: [--allow-multiple-documents]
       - id: check-toml
@@ -21,7 +22,8 @@ repos:
       - id: check-added-large-files
         # The EDA notebook keeps its outputs (~1 MB of figures) so the team can read it without
         # running it; it opts in with "keep_output": true in its metadata, which nbstripout honours.
-        exclude: ^notebooks/01_eda\.ipynb$
+        # data/ is committed on purpose for this course team (not a practice for real projects).
+        exclude: ^(notebooks/01_eda\.ipynb|data/.*)$
       - id: detect-private-key
   - repo: https://github.com/astral-sh/uv-pre-commit
     rev: 0.12.19

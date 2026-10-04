@@ -281,12 +281,9 @@ $RECYCLE.BIN/
 
 # Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 
-# ds-project-setup: data and model artifacts stay out of git;
-# data/manifest.json records which inputs a run used.
-/data/**
-!/data/**/
-!/data/**/.gitkeep
-!/data/manifest.json
+# data/ is committed on purpose so every team member of this course project has the exact
+# inputs and outputs (not a practice for real projects); data/manifest.json records the raw
+# files' sha256. Model artifacts stay out of git.
 /models/**
 !/models/.gitkeep
 
