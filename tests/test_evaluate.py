@@ -244,8 +244,41 @@ def results_frame() -> pl.DataFrame:
 
 def test_score_mae_and_bias() -> None:
     table = ev.score(results_frame())
+    assert table.columns == [
+        "model",
+        "n",
+        "mae",
+        "bias",
+        "median_error",
+        "under_share",
+    ]
     a = table.filter(pl.col("model") == "a").row(0, named=True)
-    assert a == {"model": "a", "n": 2, "mae": 3.0, "bias": -1.0}
+    assert a == {
+        "model": "a",
+        "n": 2,
+        "mae": 3.0,
+        "bias": -1.0,
+        "median_error": -1.0,
+        "under_share": 0.5,
+    }
+
+
+def test_score_median_error_and_under_share() -> None:
+    # Errors (y_pred - y_true) 3, -1, -2, -6 and 0: median -1; 3 of 5 under.
+    # The row without truth is not scored, and a zero error is not under.
+    frame = pl.DataFrame(
+        {
+            "model": ["m"] * 6,
+            "target_start": [dt.date(2024, 1, d) for d in range(1, 7)],
+            "y_true": [10.0, 10.0, 10.0, 10.0, 10.0, None],
+            "y_pred": [13.0, 9.0, 8.0, 4.0, 10.0, 1.0],
+        }
+    )
+    row = ev.score(frame).row(0, named=True)
+    assert row["n"] == 5
+    assert row["bias"] == pytest.approx(-1.2)
+    assert row["median_error"] == -1.0
+    assert row["under_share"] == pytest.approx(0.6)
 
 
 def test_score_by_month() -> None:
@@ -330,6 +363,14 @@ def test_cli_baselines(tmp_path: Path, parquet_inputs: tuple[Path, Path]) -> Non
     n_clean = {row["model"]: row["n"] for row in v2["overall_without_anomalies"]}
     assert all(n_clean[m] == n_all[m] - 2 for m in n_all)  # one day, two divisions
     assert len(v2["candidates"]) == len(ev.SAME_WEEKDAY_WEEKS) + 1
+    assert set(v2["overall"][0]) == {
+        "model",
+        "n",
+        "mae",
+        "bias",
+        "median_error",
+        "under_share",
+    }
     assert "wrote" in result.output
 
 

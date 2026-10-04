@@ -255,13 +255,23 @@ def flag_anomalies(results: pl.DataFrame, anomalies: pl.DataFrame) -> pl.DataFra
 
 
 def score(results: pl.DataFrame, by: Sequence[str] = ()) -> pl.DataFrame:
-    """MAE and bias (forecast minus actual) per model and ``by`` group.
+    """MAE, bias, median error and share under actual per model and ``by`` group.
 
-    Rows with a null ``y_true`` are not scored. ``by`` may include ``month``
-    (calendar month of the window start) and any column of ``results``.
+    Errors are forecast minus actual. MAE is minimised by the median, so on
+    right-skewed counts a well-calibrated forecast shows a negative mean bias;
+    ``median_error`` and ``under_share`` show whether a model is centred on the
+    median. Rows with a null ``y_true`` are not scored. ``by`` may include
+    ``month`` (calendar month of the window start) and any column of
+    ``results``.
+
+    Args:
+        results: Output of ``rolling_origin``.
+        by: Grouping columns besides ``model``.
 
     Returns:
-        ``model, *by, n, mae, bias`` sorted by model then ``by``.
+        ``model, *by, n, mae, bias, median_error, under_share`` sorted by model
+        then ``by``; ``under_share`` is the share of scored rows with
+        ``y_pred < y_true``.
     """
     scored = results.filter(pl.col("y_true").is_not_null()).with_columns(
         month=pl.col("target_start").dt.month()
@@ -269,7 +279,13 @@ def score(results: pl.DataFrame, by: Sequence[str] = ()) -> pl.DataFrame:
     error = pl.col("y_pred") - pl.col("y_true")
     return (
         scored.group_by("model", *by)
-        .agg(n=pl.len(), mae=error.abs().mean(), bias=error.mean())
+        .agg(
+            n=pl.len(),
+            mae=error.abs().mean(),
+            bias=error.mean(),
+            median_error=error.median(),
+            under_share=(pl.col("y_pred") < pl.col("y_true")).mean(),
+        )
         .sort("model", *by)
     )
 
@@ -393,9 +409,10 @@ def baseline_report(
 
     Returns:
         Per setting: the chosen window, then overall, per-division and
-        per-month MAE and bias for the chosen same-weekday model and the plain
-        28-day mean, with and without windows touching an anomaly day, plus the
-        overall score of every candidate window.
+        per-month MAE, bias, median error and share under actual for the
+        chosen same-weekday model and the plain 28-day mean, with and without
+        windows touching an anomaly day, plus the overall score of every
+        candidate window.
     """
     report: dict[str, Any] = {
         "period": {"start": str(start), "end": str(end)},
@@ -413,7 +430,11 @@ def baseline_report(
 
         def table(frame: pl.DataFrame, by: Sequence[str] = ()) -> list[dict[str, Any]]:
             return (
-                score(frame, by).with_columns(pl.col("mae", "bias").round(3)).to_dicts()
+                score(frame, by)
+                .with_columns(
+                    pl.col("mae", "bias", "median_error", "under_share").round(3)
+                )
+                .to_dicts()
             )
 
         report["settings"][spec.key] = {
