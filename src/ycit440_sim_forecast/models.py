@@ -142,6 +142,17 @@ DEFAULT_PREDICTIONS = Path("data/processed/model_predictions_v2.parquet")
 REFERENCES: tuple[str, ...] = ("same_wd_13w", "plain_28d")
 """Baselines every model is compared against in the report."""
 
+ENSEMBLE_CANDIDATES: tuple[str, ...] = (
+    "lgbm_poisson_raw",
+    "lgbm_poisson",
+    "cat_tweedie",
+    "ets_weekly",
+    "topdown_ets",
+)
+"""Models to combine: trees with and without the level offset, plus level-tracking
+ETS models whose bias is near the baselines', so their errors should differ from
+the trees'. XGBoost duplicates LightGBM and ``nb_glm`` is worst, so both are out."""
+
 LIBRARIES: tuple[str, ...] = (
     "catboost",
     "lightgbm",
@@ -949,6 +960,10 @@ class ARCalendar(_DivisionStateSpace):
     parameters (what ``results.apply`` does, without the smoother), then
     forecasts with the calendar regressors of the target days.
 
+    Not registered in ``default_models``: on 2021-2024 it scored MAE 8.743 and
+    bias -2.38 (commit aab221e), because its stationary constant pulls forecasts
+    toward a long-run mean that includes the 2020 dip.
+
     Attributes:
         name: Label used in result tables.
         min_days: Known days a division needs to be fit.
@@ -1199,9 +1214,8 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
     Returns:
         LightGBM Poisson, Tweedie and Poisson without offset; XGBoost Poisson
         and Tweedie; CatBoost Poisson and Tweedie; the NB GLM; LightGBM L1 on
-        raw counts and on the ratio to the level; ETS(A,N,A) and the
-        calendar AR(7) per division; top-down LightGBM Poisson (raw) and
-        top-down ETS.
+        raw counts and on the ratio to the level; ETS(A,N,A) per division;
+        top-down LightGBM Poisson (raw) and top-down ETS.
     """
     lgbm = {
         "n_estimators": 400,
@@ -1267,7 +1281,6 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
             "lgbm_l1", LGBMRegressor(objective="l1", **lgbm), level="ratio"
         ),
         ETSWeekly(),
-        ARCalendar(),
         TopDown("topdown_lgbm_poisson_raw", lgbm_poisson_raw()),
         TopDown("topdown_ets", ETSWeekly()),
     ]
@@ -1372,10 +1385,12 @@ def models_report(
 
     Returns:
         The report (period, setting, overall, without anomalies, by division,
-        by month, by year, bias by year and division, paired bootstraps
-        against each of ``REFERENCES``, timings and library versions, floats
-        rounded to 3) and the raw results with an ``anomaly`` column. The year
-        is the calendar year of ``target_start``.
+        by month, by year, bias and median error by year and division, paired
+        bootstraps against each of ``REFERENCES``, timings and library
+        versions, floats rounded to 3) and the raw results with an ``anomaly``
+        column. The year is the calendar year of ``target_start``. Every score
+        table has ``n``, ``mae``, ``bias``, ``median_error`` and
+        ``under_share``.
     """
     timed = [Timed(m) for m in (*forecasters, SameWeekdayMean(13), PlainMean())]
     results = flag_anomalies(
@@ -1404,7 +1419,7 @@ def models_report(
         "by_month": table(results, ["month"]),
         "by_year": table(with_year, ["year"]),
         "by_year_division": score(with_year, ["year", "DIVISION"])
-        .select("model", "year", "DIVISION", "bias")
+        .select("model", "year", "DIVISION", "bias", "median_error")
         .to_dicts(),
         "bootstrap": bootstrap,
         "seconds": {

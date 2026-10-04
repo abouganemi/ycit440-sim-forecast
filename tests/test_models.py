@@ -28,7 +28,7 @@ MISSING = dt.date(2024, 3, 31)
 START = dt.date(2024, 2, 1)
 END = dt.date(2024, 3, 10)
 PRESETS = [spec.V2_DAILY, spec.WEEKLY, *spec.daily_horizon(14)]
-NAMES = [
+REGISTERED_NAMES = [
     "lgbm_poisson",
     "lgbm_tweedie",
     "lgbm_poisson_raw",
@@ -40,10 +40,12 @@ NAMES = [
     "lgbm_l1_raw",
     "lgbm_l1",
     "ets_weekly",
-    "ar_calendar",
     "topdown_lgbm_poisson_raw",
     "topdown_ets",
 ]
+"""Names returned by ``default_models``, in order."""
+NAMES = [*REGISTERED_NAMES, "ar_calendar"]
+"""Every model under test; ``ar_calendar`` is tested but not registered."""
 BOOSTED_NAMES = [
     "lgbm_poisson",
     "lgbm_tweedie",
@@ -138,7 +140,7 @@ def light(model: Forecaster) -> Forecaster:
 
 
 def light_models() -> list[Forecaster]:
-    return [light(m) for m in md.default_models()]
+    return [*(light(m) for m in md.default_models()), md.ARCalendar()]
 
 
 def by_name(name: str) -> Forecaster:
@@ -156,15 +158,10 @@ def cut(frame: pl.DataFrame, last: dt.date) -> pl.DataFrame:
 
 def test_default_models_names_and_types() -> None:
     models = md.default_models()
-    assert [m.name for m in models] == NAMES
+    assert [m.name for m in models] == REGISTERED_NAMES
     for m in models:
         assert isinstance(
-            m,
-            md.BoostedForecaster
-            | md.NegBinGLM
-            | md.ETSWeekly
-            | md.ARCalendar
-            | md.TopDown,
+            m, md.BoostedForecaster | md.NegBinGLM | md.ETSWeekly | md.TopDown
         )
     boosted = {m.name: m for m in models if isinstance(m, md.BoostedForecaster)}
     levels = {name: m.level for name, m in boosted.items()}
@@ -186,6 +183,12 @@ def test_default_models_names_and_types() -> None:
         == boosted["lgbm_poisson_raw"].estimator.get_params()
     )
     assert isinstance(tops["topdown_ets"].base, md.ETSWeekly)
+
+
+def test_ensemble_candidates_are_registered() -> None:
+    names = {m.name for m in md.default_models()}
+    assert set(md.ENSEMBLE_CANDIDATES) <= names
+    assert len(set(md.ENSEMBLE_CANDIDATES)) == len(md.ENSEMBLE_CANDIDATES)
 
 
 def test_default_models_are_unfitted_and_independent() -> None:
@@ -1063,7 +1066,21 @@ def test_cli_validate(
     assert {"mae", "bias", "n"} <= set(report["by_year"][0])
     by_year_division = report["by_year_division"]
     assert len(by_year_division) == len(names) * 2
-    assert set(by_year_division[0]) == {"model", "year", "DIVISION", "bias"}
+    assert set(by_year_division[0]) == {
+        "model",
+        "year",
+        "DIVISION",
+        "bias",
+        "median_error",
+    }
+    columns = {"model", "n", "mae", "bias", "median_error", "under_share"}
+    for key in ("overall", "overall_without_anomalies"):
+        assert set(report[key][0]) == columns
+    for key, by in (("by_division", "DIVISION"), ("by_month", "month")):
+        assert set(report[key][0]) == columns | {by}
+    assert set(report["by_year"][0]) == columns | {"year"}
+    shares = [row["under_share"] for row in report["overall"]]
+    assert all(0 <= share <= 1 for share in shares)
     assert set(report["bootstrap"]) == {"same_wd_13w", "plain_28d"}
     against = {b["model"] for b in report["bootstrap"]["same_wd_13w"]}
     assert against == names - {"same_wd_13w"}
