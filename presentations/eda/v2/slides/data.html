@@ -1,0 +1,41 @@
+<section id="data" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">754,413 incidents, 14,748 division-days</h2>
+<div style="display:flex;gap:64px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;color:#14171C;font-variant-numeric:tabular-nums">754,413</p>
+<p style="font-size:24px;line-height:1.4">records in 2 appended files; 13 columns: 4 numeric codes, 1 timestamp, 4 text, 4 coordinates</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;color:#14171C;font-variant-numeric:tabular-nums">2,458</p>
+<p style="font-size:24px;line-height:1.4">observed days, 2020-01-01 to 2026-09-24</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;color:#14171C">6</p>
+<p style="font-size:24px;line-height:1.4">divisions in the target; division code 0 (600 rows) excluded</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;color:#14171C">53</p>
+<p style="font-size:24px;line-height:1.4">median interventions per division-day; no zero days</p>
+</div>
+</div>
+<div style="display:flex;gap:64px;align-items:start">
+<table style="flex:1;font-size:24px;color:#474D57;font-variant-numeric:tabular-nums">
+<tr style="background:#E8EBEE"><th style="width:14%;text-align:left;color:#14171C">Division</th><th style="width:11%;text-align:right;color:#14171C">Mean</th><th style="width:12%;text-align:right;color:#14171C">Median</th><th style="width:10%;text-align:right;color:#14171C">SD</th><th style="width:15%;text-align:right;color:#14171C">Q1-Q3</th><th style="width:11%;text-align:right;color:#14171C">P95</th><th style="width:11%;text-align:right;color:#14171C">Max</th><th style="width:16%;text-align:right;color:#14171C">Skewness</th></tr>
+<tr><td>1</td><td>28.3</td><td>28</td><td>13.2</td><td>23-33</td><td>41</td><td>384</td><td>11.0</td></tr>
+<tr><td>2</td><td>54.2</td><td>54</td><td>14.6</td><td>47-62</td><td>74</td><td>221</td><td>1.7</td></tr>
+<tr><td>3</td><td>61.2</td><td>61</td><td>17.7</td><td>53-69</td><td>84</td><td>394</td><td>4.0</td></tr>
+<tr><td>4</td><td>59.1</td><td>59</td><td>15.0</td><td>52-67</td><td>80</td><td>287</td><td>1.2</td></tr>
+<tr><td>5</td><td>57.8</td><td>57</td><td>16.3</td><td>49-66</td><td>81</td><td>353</td><td>2.9</td></tr>
+<tr><td>6</td><td>46.0</td><td>45</td><td>16.1</td><td>35-56</td><td>73</td><td>143</td><td>0.4</td></tr>
+</table>
+<div style="width:440px;display:flex;flex-direction:column;gap:12px">
+<p style="font-size:30px;font-weight:600;color:#14171C">The typical day is symmetric</p>
+<p style="font-size:24px;line-height:1.4">Mean and median agree within 1 in every division.</p>
+<p style="font-size:30px;font-weight:600;color:#14171C;padding:16px 0px 0px 0px">The tails are storm days</p>
+<p style="font-size:24px;line-height:1.4">Division 1's maximum is 13 times its median. MAE, which targets the median, is the right metric.</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Source: Ville de Montréal open data (CC BY 4.0), retrieved 2026-09-26</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">3</p>
+<aside>About 1 minute 15. Two official files, 2020-2024 and the current file, same 13 columns, consecutive periods, so we append them. 754,413 records. We aggregate to one row per division per day: 14,748 division-days, median 53, never zero. The table describes the target. Mean and median agree, so a typical day is symmetric. The tails are not: Division 1 had 384 interventions on the ice-storm day, 13 times its median. That is why we use MAE as the primary metric and why we look at storm days separately.</aside>
+</section>

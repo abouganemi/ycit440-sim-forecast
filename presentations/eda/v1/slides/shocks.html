@@ -1,0 +1,26 @@
+<section id="shocks" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">Shocks are rare, shared and weather-driven</h2>
+<div style="display:flex;gap:64px;align-items:start">
+<div style="width:560px;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;color:#B3261E">0.91%</p>
+<p style="font-size:24px;line-height:1.4">of division-days are anomalies: robust STL residual with z above 6</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;color:#14171C">16 dates</p>
+<p style="font-size:24px;line-height:1.4">anomalous in 3 or more divisions at once; the April 2023 ice storm peaked at 1,712 interventions</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;color:#14171C">26% to 73%</p>
+<p style="font-size:24px;line-height:1.4">non-medical calls on those days, against 21% overall: electrical problems and flooding</p>
+</div>
+<p style="font-size:24px;line-height:1.4;color:#14171C">Neither the calendar nor counts up to D−3 predict them.</p>
+</div>
+<div style="flex:1;background:#FCFCFB;border:1px solid #D5D9DE;padding:24px">
+<img src="/_blob/866133238f1f5d8100b116d64af819be" alt="Robust residuals for each of Divisions 1 to 6, 2020 to 2026, with anomaly days above z equals 6 highlighted; most anomalies cluster on the same dates across divisions" style="width:990px;height:413px;object-fit:contain">
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">6</p>
+<aside>About 1 minute 15. Second pattern: shocks. We remove each division's trend and weekly pattern with a robust decomposition, then flag days whose residual is more than 6 robust standard deviations above normal. That flags under 1% of division-days. Most of them happen on the same dates in several divisions: 16 dates hit 3 or more divisions at once. Those are weather days. The April 2023 ice storm is confirmed; the others match electrical problems and flooding but we have not checked them against weather records. Nothing in our inputs predicts them, so we report errors with and without these days.</aside>
+</section>

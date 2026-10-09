@@ -1,0 +1,38 @@
+<section id="modelling" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">What this means for the model</h2>
+<div style="display:flex;gap:64px;align-items:start">
+<div style="flex:1;display:flex;flex-direction:column;gap:24px">
+<p style="font-size:30px;font-weight:600;color:#B3261E">Build the model</p>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Features</p>
+<p style="font-size:24px;line-height:1.4">Recent levels ending D−3, weekday, month, holidays. No linear trend: it over-predicts after December 2025. Never incident type or vehicles.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Structure</p>
+<p style="font-size:24px;line-height:1.4">One pooled model with a division effect, since most movement is shared. Division 6 gets its own recent-level features.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Target and loss</p>
+<p style="font-size:24px;line-height:1.4">Poisson or Tweedie objective on raw counts, or log1p, chosen on validation MAE and always scored on the original scale.</p>
+</div>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:24px">
+<p style="font-size:30px;font-weight:600;color:#B3261E">Judge the model</p>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Split</p>
+<p style="font-size:24px;line-height:1.4">Rolling-origin validation on 2021-2024, test on 2025 onward. No k-fold cross-validation: it would train on the future.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Baselines</p>
+<p style="font-size:24px;line-height:1.4">Same-weekday mean, 13 or 26 weeks: MAE 8.16. Plain 28-day mean: MAE 8.03, the harder comparator. We report both.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid #C9CDD3;padding:16px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Evaluation</p>
+<p style="font-size:24px;line-height:1.4">MAE and bias per division and per month, with and without the 134 anomaly days.</p>
+</div>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">9</p>
+<aside>About 1 minute 15. Left, how we build it. Inputs are recent levels up to D minus 3 plus the calendar; we drop the linear trend because it over-predicts after the late-2025 drop; nothing describing day D's incidents goes in. One pooled model across divisions, because most movement is shared, with extra level features for Division 6. Counts are over-dispersed, so we compare a Poisson or Tweedie loss with a log transform. Right, how we judge it. Time-ordered validation, never k-fold, which would train on days after the ones it predicts. Two baselines: the agreed same-weekday mean, and a plain 28-day mean, which was already better in 2024. Errors per division, per month, with and without anomaly days.</aside>
+</section>

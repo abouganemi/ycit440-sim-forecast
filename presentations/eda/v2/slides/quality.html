@@ -1,0 +1,25 @@
+<section id="quality" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">Small, known gaps, each with a plan</h2>
+<table style="font-size:24px;color:#474D57;font-variant-numeric:tabular-nums">
+<tr style="background:#E8EBEE"><th style="width:36%;text-align:left;color:#14171C">Issue</th><th style="width:14%;text-align:right;color:#14171C">Size</th><th style="width:50%;text-align:left;color:#14171C">Planned handling</th></tr>
+<tr><td>2024-12-31 missing from both files</td><td style="text-align:right">1 day</td><td>Kept as null, never 0; that day is not scored</td></tr>
+<tr><td>Division code 0, undocumented</td><td style="text-align:right">600 rows</td><td>Excluded from the target</td></tr>
+<tr><td>Blank incident group, mostly fire-type</td><td style="text-align:right">1,788 rows</td><td>Not in the target; counted as non-first-responder in share features</td></tr>
+<tr><td>Date-only timestamps</td><td style="text-align:right">8 rows</td><td>Counted on their date</td></tr>
+<tr><td>Duplicate (year, incident number)</td><td style="text-align:right">0</td><td>Key is unique; the two files do not overlap</td></tr>
+</table>
+<div style="display:flex;gap:64px">
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;border-top:2px solid #14171C;padding:20px 0px 0px 0px">
+<p style="font-size:30px;font-weight:600;color:#14171C">Coverage</p>
+<p style="font-size:24px;line-height:1.4">The open data hold about 94% of the interventions SIM reports (2022-2024), so the target is published interventions.</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:8px;border-top:2px solid #14171C;padding:20px 0px 0px 0px">
+<p style="font-size:30px;font-weight:600;color:#14171C">Outliers</p>
+<p style="font-size:24px;line-height:1.4">134 division-days (0.91%) flagged by robust STL residuals with z above 6. Kept, and evaluated with and without.</p>
+</div>
+</div>
+<p style="font-size:24px;line-height:1.4"><b>Leakage:</b> day D's incident type, caserne and vehicles are known only after D, so they are never inputs. Lagged counts stop at D−3.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">4</p>
+<aside>About 1 minute 30. Missing values are few and we know where they are. The important one is 2024-12-31: it is absent from both files, so it is a gap, not a quiet day. We keep it as null and never score a forecast for it. Division code 0 is undocumented and excluded. Blank groups grow over time and are mostly fire-type events. No duplicate keys. Coverage: the open data are about 94% of what SIM reports, so we say "published interventions". Outliers are flagged by a rule, not removed. Leakage: anything describing day D's incidents is unknown when we forecast, so it is never an input.</aside>
+</section>

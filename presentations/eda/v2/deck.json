@@ -1,0 +1,20 @@
+{
+  "v": 4,
+  "createdOnFiles": {"v": 1, "at": "2026-10-03T17:30:00Z"},
+  "lists": "css",
+  "title": "v2_SIM EDA Presentation",
+  "cover": "cover",
+  "order": ["cover", "problem", "data", "quality", "level", "shocks", "shared", "planning", "modelling", "next", "backup-baseline", "backup-shocks"],
+  "sections": {
+    "s1": {"description": "Problem and data: what we forecast and what the files contain", "start": "cover"},
+    "s2": {"description": "Data quality: gaps, coverage, outliers and leakage, with planned handling", "start": "quality"},
+    "s3": {"description": "Key patterns: an unstable level, shared weather shocks, and Division 6", "start": "level"},
+    "s4": {"description": "Implications: planning, modelling, next steps and risks", "start": "planning"},
+    "s5": {"description": "Backup: baseline detail and shared shock days", "start": "backup-baseline"}
+  },
+  "faces": {
+    "ibm-plex-sans-condensed": {"family": "IBM Plex Sans Condensed", "href": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&display=swap"},
+    "ibm-plex-sans": {"family": "IBM Plex Sans", "href": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap"}
+  },
+  "designSystems": []
+}

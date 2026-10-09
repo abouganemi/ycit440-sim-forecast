@@ -1,0 +1,31 @@
+<section id="problem" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">One forecast per division, one day ahead</h2>
+<div style="display:flex;gap:64px;align-items:start">
+<div style="flex:5;display:flex;flex-direction:column;gap:40px">
+<div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #C9CDD3;padding:20px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Decision supported</p>
+<p style="font-size:30px;line-height:1.4">Review planned training or maintenance that takes units out of service when unusual volume is expected.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #C9CDD3;padding:20px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Intended user</p>
+<p style="font-size:30px;line-height:1.4">SIM Operational Planning Division (proposed; the decision owner is not confirmed).</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid #C9CDD3;padding:20px 0px 0px 0px">
+<p style="font-size:24px;font-weight:600;color:#14171C">Scope</p>
+<p style="font-size:30px;line-height:1.4">Recorded volume, not workload: no claims about staffing, vehicles or response times.</p>
+</div>
+</div>
+<div style="flex:7;display:flex;flex-direction:column;gap:24px;background:#FCFCFB;border:1px solid #D5D9DE;padding:48px">
+<p style="font-size:24px;font-weight:600;color:#B3261E">Target</p>
+<h3 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;line-height:1.2;color:#14171C">Daily count of interventions published in the open data, per Division 1-6</h3>
+<table style="font-size:30px;color:#474D57;padding:16px">
+<tr><td style="width:28%;color:#14171C">Unit</td><td style="width:72%">interventions per division-day</td></tr>
+<tr><td style="color:#14171C">Timing</td><td>forecast day D on D−1, using counts up to D−3</td></tr>
+<tr><td style="color:#14171C">Judged by</td><td>MAE and bias against a recent same-weekday mean</td></tr>
+</table>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">2</p>
+<aside>About 1 minute. The decision: SIM sometimes takes units out of service for training or maintenance. A day-ahead forecast of volume per division could flag days when that is risky. The user is proposed, not confirmed. The target is the daily count of interventions published in the open data, for each of Divisions 1 to 6. Timing matters: the portal publishes about 2 days late, so a forecast made on D minus 1 can only use counts up to D minus 3. Success means a lower MAE than a recent same-weekday average. We forecast recorded volume, not workload.</aside>
+</section>
