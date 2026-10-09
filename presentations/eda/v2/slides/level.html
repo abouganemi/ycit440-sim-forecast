@@ -1,0 +1,26 @@
+<section id="level" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">The level shifts with first-responder calls</h2>
+<div style="display:flex;gap:64px;align-items:start">
+<div style="width:1136px;background:#FCFCFB;border:1px solid #D5D9DE;padding:24px">
+<img src="/_blob/4fe5cb42f26dd01dee66529d287944b2" alt="Stacked monthly interventions per day by group, 2020 to 2026: first-responder calls nearly vanish in spring 2020 and drop again from late 2025 while other groups hold" style="width:1086px;height:445px;object-fit:contain">
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;color:#14171C">227 to 358</p>
+<p style="font-size:24px;line-height:1.4">interventions a day, citywide, 2020 (COVID) to 2025; flat in 2023-24</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;color:#14171C">Spring 2020</p>
+<p style="font-size:24px;line-height:1.4">first-responder calls nearly vanish for about three months</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<p style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:40px;font-weight:600;color:#B3261E">−25% to −30%</p>
+<p style="font-size:24px;line-height:1.4">first-responder calls in Divisions 1-5, 2026 vs 2025, while Division 6 rose 9.5%. Cause not documented.</p>
+</div>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.4;color:#14171C">Train on 2021-2024, track the level with recent features, and treat 2025 onward as a drift test.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">5</p>
+<aside>About 1 minute 15. First pattern: the level is not stable, and the breaks come from first-responder calls, the blue band. In spring 2020 they almost disappear for three months (COVID). From late December 2025 they fall 25 to 30% in Divisions 1 to 5, while all other groups hold or grow, and Division 6 grows. We do not know why; a change in dispatch protocol is a hypothesis, not a finding. For the model: 2020 is only lag history, structure is learned on 2021 to 2024, and the late-2025 break falls inside our test period, so it is a real drift test.</aside>
+</section>

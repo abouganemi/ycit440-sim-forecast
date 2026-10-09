@@ -1,0 +1,19 @@
+<section id="backup-baseline" data-transition="fade" style="background:#F5F6F7;color:#474D57;font-family:'IBM Plex Sans', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'IBM Plex Sans Condensed', Arial, sans-serif;font-size:64px;font-weight:600;line-height:1.1;letter-spacing:-1px;color:#14171C">Backup: baselines by division, 2021 to 2024</h2>
+<table style="font-size:24px;color:#474D57;font-variant-numeric:tabular-nums">
+<tr style="background:#E8EBEE"><th style="width:28%;text-align:left;color:#14171C">Division</th><th style="width:22%;text-align:right;color:#14171C">Same weekday, 13 wk</th><th style="width:22%;text-align:right;color:#14171C">Plain 28-day</th><th style="width:28%;text-align:left;color:#14171C">Lower MAE</th></tr>
+<tr><td>1</td><td>6.32</td><td>6.37</td><td>13 wk</td></tr>
+<tr><td>2</td><td>8.77</td><td>8.74</td><td>Plain 28-day</td></tr>
+<tr><td>3</td><td>9.71</td><td>9.86</td><td>13 wk</td></tr>
+<tr><td>4</td><td>8.84</td><td>8.73</td><td>Plain 28-day</td></tr>
+<tr><td>5</td><td>9.36</td><td>9.35</td><td>Tie</td></tr>
+<tr><td>6</td><td>7.88</td><td>7.89</td><td>Tie</td></tr>
+<tr style="background:#E8EBEE"><td>All</td><td>8.48</td><td>8.49</td><td>Tie</td></tr>
+<tr><td>Bias, all</td><td>−0.48</td><td>−0.16</td><td></td></tr>
+<tr><td>All, anomaly days out</td><td>7.72</td><td>7.72</td><td>Tie</td></tr>
+</table>
+<p style="font-size:24px;line-height:1.4;width:1400px">MAE in interventions a day, rolling origin over 2021 to 2024, 8,760 division-days each. Every forecast uses only data up to D−3; the 2025 test period was not touched. Same-weekday windows of 4, 8, 13, 26 and 52 weeks scored 9.20, 8.64, 8.48, 8.51 and 8.57, so 13 weeks was chosen.</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1300px;font-size:24px;color:#646A73">Team 4, SIM interventions EDA</p>
+<p style="position:absolute;right:128px;bottom:64px;width:120px;font-size:24px;color:#646A73;text-align:right">B1</p>
+<aside>Backup, for questions about the baselines. Over four validation years the two baselines tie: 8.48 for the 13-week same-weekday mean against 8.49 for the plain 28-day mean, and each wins two divisions. The 2024-only preview, where the plain mean looked better, does not hold over 2021 to 2024. The 13-week window was chosen on these years, before any test data was used. Negative bias means slight under-forecasting; it comes mostly from anomaly days and from skewed counts, where the median sits below the mean.</aside>
+</section>
