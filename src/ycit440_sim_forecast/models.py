@@ -1335,6 +1335,71 @@ class TopDown:
         )
 
 
+def lgbm_params(seed: int = DEFAULT_SEED) -> dict[str, Any]:
+    """Untuned ``LGBMRegressor`` settings shared by the LightGBM defaults.
+
+    Args:
+        seed: Random seed.
+
+    Returns:
+        Keyword arguments without the objective: 400 trees at learning rate
+        0.05, 15 leaves, 50 rows per leaf, 4 threads, deterministic, silent.
+    """
+    return {
+        "n_estimators": 400,
+        "learning_rate": 0.05,
+        "num_leaves": 15,
+        "min_child_samples": 50,
+        "random_state": seed,
+        "n_jobs": 4,
+        "deterministic": True,
+        "force_row_wise": True,
+        "verbose": -1,
+    }
+
+
+def xgb_params(seed: int = DEFAULT_SEED) -> dict[str, Any]:
+    """Untuned ``XGBRegressor`` settings shared by the XGBoost defaults.
+
+    Args:
+        seed: Random seed.
+
+    Returns:
+        Keyword arguments without the objective: 400 trees at learning rate
+        0.05, depth 4, histogram trees with native categoricals, 4 threads.
+    """
+    return {
+        "n_estimators": 400,
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "tree_method": "hist",
+        "enable_categorical": True,
+        "random_state": seed,
+        "n_jobs": 4,
+    }
+
+
+def cat_params(seed: int = DEFAULT_SEED) -> dict[str, Any]:
+    """Untuned ``CatBoostRegressor`` settings shared by the CatBoost defaults.
+
+    Args:
+        seed: Random seed.
+
+    Returns:
+        Keyword arguments without the loss: 400 iterations at learning rate
+        0.05, depth 4, 4 threads, silent, no files written.
+    """
+    return {
+        "iterations": 400,
+        "learning_rate": 0.05,
+        "depth": 4,
+        "random_seed": seed,
+        "thread_count": 4,
+        "logging_level": "Silent",
+        "allow_writing_files": False,
+    }
+
+
 def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
     """The model configurations that get validated.
 
@@ -1352,35 +1417,9 @@ def default_models(seed: int = DEFAULT_SEED) -> list[Forecaster]:
         raw counts and on the ratio to the level; ETS(A,N,A) per division;
         top-down LightGBM Poisson (raw) and top-down ETS.
     """
-    lgbm = {
-        "n_estimators": 400,
-        "learning_rate": 0.05,
-        "num_leaves": 15,
-        "min_child_samples": 50,
-        "random_state": seed,
-        "n_jobs": 4,
-        "deterministic": True,
-        "force_row_wise": True,
-        "verbose": -1,
-    }
-    xgb = {
-        "n_estimators": 400,
-        "learning_rate": 0.05,
-        "max_depth": 4,
-        "tree_method": "hist",
-        "enable_categorical": True,
-        "random_state": seed,
-        "n_jobs": 4,
-    }
-    cat = {
-        "iterations": 400,
-        "learning_rate": 0.05,
-        "depth": 4,
-        "random_seed": seed,
-        "thread_count": 4,
-        "logging_level": "Silent",
-        "allow_writing_files": False,
-    }
+    lgbm = lgbm_params(seed)
+    xgb = xgb_params(seed)
+    cat = cat_params(seed)
 
     def lgbm_poisson_raw() -> BoostedForecaster:
         return BoostedForecaster(
