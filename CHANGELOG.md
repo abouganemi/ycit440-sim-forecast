@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.5.0...v1.6.0) (2026-10-12)
+
+
+### Features
+
+* **tuning:** add Optuna tuning of boosters ([8d322e3](https://github.com/abouganemi/ycit440-sim-forecast/commit/8d322e3c8ebf68ef909931f894b1c2407c0acdce))
+
 # [1.5.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.4.0...v1.5.0) (2026-10-04)
 
 
