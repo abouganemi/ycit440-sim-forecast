@@ -7,7 +7,9 @@ Every number here comes from the JSON reports in this folder:
 - [`holdout_test.json`](holdout_test.json): the single test run, 2025-01-01 → 2026-09-24;
 - [`horizon_comparison.json`](horizon_comparison.json) and the per-setting
   `models_validation_<setting>.json` / `ensemble_validation_<setting>.json`: the horizon
-  comparison, validation data only.
+  comparison, validation data only;
+- [`tuning_validation.json`](tuning_validation.json): the Optuna tuning of the boosters, tuned on
+  2021 and compared on 2022–2024, validation data only.
 
 Earlier stages are documented in [`eda_report.md`](eda_report.md) and
 [`baseline_report.md`](baseline_report.md).
@@ -41,6 +43,10 @@ per division and day, compared with the agreed baseline, on data it never saw wh
 6. **Volume is still mostly unpredictable at this cutoff.** Even the final model misses by about
    8 interventions a day on a median of about 53 (WAPE 15% in validation). Storm and shock days,
    which no input describes, carry the largest errors.
+7. **Hyperparameter tuning did not improve the ensemble.** The final models use fixed, untuned
+   settings. An Optuna search on the three boosters, tuned on 2021, gave an ensemble with MAE
+   **8.318** on 2022–2024 against **8.257** untuned: 0.06 worse, 95% CI −0.01 to +0.13. The
+   untuned `ens_mean` stays the final model (§4).
 
 ---
 
@@ -93,6 +99,10 @@ pulled every forecast towards a mean that included the 2020 dip).
 earlier data only: the mean, the median, and MAE-optimal weights. **`ens_mean`, the plain
 mean, was chosen before the test**: it scored best and learns nothing.
 
+**Hyperparameters.** The boosters use fixed settings (400 trees, learning rate 0.05, shallow
+trees), not tuned values. A tuning experiment was run afterwards on validation data only (§4); it
+did not change the final model.
+
 **Uncertainty.** Every comparison is a paired block bootstrap: whole ISO weeks are resampled,
 all divisions together, because errors are correlated in time and across divisions on shock
 days. 2,000 resamples, 95% percentile intervals.
@@ -114,6 +124,45 @@ days. 2,000 resamples, 95% percentile intervals.
 
 Without windows that contain an anomaly day, `ens_mean` scores 7.35 against 7.96 and 8.05 for
 the two baselines.
+
+### Tuned versus untuned ensemble
+
+The three boosters in the ensemble (`lgbm_poisson_raw`, `lgbm_poisson`, `cat_tweedie`) were
+tuned with Optuna: 40 trials each, TPE sampler with a fixed seed, the default settings as the
+first trial. The search covered the number of trees, learning rate, tree size, leaf minimum,
+regularisation and row/column subsampling. Each trial was scored by rolling origin on **2021
+only**, so the tuning never saw the 2022–2024 period used to compare the ensembles.
+`ets_weekly` and `topdown_ets` have nothing to tune and were kept as they are.
+`ens_mean_tuned` is the plain mean of the three tuned boosters and the two unchanged ETS models.
+The test period was not used. Configuration `c7977b696fd3`.
+
+| Model                  | Tuning MAE, 2021 (default → best) | MAE 2022–2024 (untuned → tuned) | Tuned minus untuned, 95% CI |
+| ---------------------- | --------------------------------- | ------------------------------- | --------------------------- |
+| lgbm_poisson_raw       | 7.47 → 6.91                       | 8.534 → 8.397                   | −0.14 [−0.21, −0.07]        |
+| lgbm_poisson           | 8.01 → 6.92                       | 8.618 → 8.681                   | +0.06 [−0.13, +0.27]        |
+| cat_tweedie            | 7.55 → 7.03                       | 8.544 → 8.672                   | +0.13 [−0.06, +0.32]        |
+| **ensemble (mean)**    |                                   | **8.257 → 8.318**               | **+0.06 [−0.01, +0.13]**    |
+
+By year the tuned ensemble wins 2022 (7.40 against 7.43) and loses 2023 (9.89 against 9.75) and
+2024 (7.66 against 7.59). Without anomaly windows: 7.39 against 7.35.
+
+**Why tuning didn't help.**
+
+- **The gains on the tuning year did not carry over.** Tuning cut each booster's 2021 MAE by 0.5
+  to 1.1, yet only `lgbm_poisson_raw` improved on 2022–2024. One year of about 2,190
+  division-days is enough for the search to fit that year's particular noise, and 2021 was an
+  easier year than 2022–2024.
+- **The two level-offset models were tuned towards doing very little.** Their best 2021 settings
+  learn slowly and stop early (about 100 trees at learning rate 0.01), so their forecasts stay
+  close to the recent 28-day level. That suited 2021 but over-forecasts later: `lgbm_poisson`'s
+  median error went from −0.06 to +0.73 and `cat_tweedie`'s from −0.34 to +0.72.
+- **The ensemble already absorbs most of what tuning can fix.** Averaging five models with
+  different errors smooths the individual settings out, and the remaining error sits close to
+  the noise floor of about 7.3–7.5 at this cutoff.
+
+Keeping only the tuned `lgbm_poisson_raw` might gain a little. But that choice would be made from
+these 2022–2024 results, and the test period has already been used, so it could not be checked
+cleanly. **The untuned `ens_mean` stays the final model.**
 
 ---
 
@@ -266,6 +315,7 @@ for h in weekly lead3 lead7 lead14 lead30; do
   uv run python -m ycit440_sim_forecast.ensemble validate --horizon "$h"
 done
 uv run python -m ycit440_sim_forecast.horizons compare
+uv run python -m ycit440_sim_forecast.tuning run --trials 40         # about 20 min; validation only
 uv run python -m ycit440_sim_forecast.holdout run                     # once; refuses to overwrite
 ```
 
