@@ -575,6 +575,7 @@
     },
     "shared_share_of_variation": 0.885
   },
+  "missing_day_2024_pts": 0.25626658883617887,
   "nulls": {
     "DESCRIPTION_GROUPE": 1788,
     "NOMBRE_UNITES": 156
@@ -607,7 +608,7 @@
       "high_range": 109,
       "max_nbr_main": 118786,
       "published": 111552,
-      "share_of_max_nbr": 0.9391005674069335,
+      "share_of_max_nbr": 0.9381829508527941,
       "share_of_sim_total": 0.9380739345420297,
       "sim_reported": 118916,
       "year": 2022
@@ -616,7 +617,7 @@
       "high_range": 30,
       "max_nbr_main": 128993,
       "published": 121514,
-      "share_of_max_nbr": 0.9420201096183514,
+      "share_of_max_nbr": 0.9417875388586977,
       "share_of_sim_total": 0.9426851406494856,
       "sim_reported": 128902,
       "year": 2023
@@ -625,7 +626,7 @@
       "high_range": 9,
       "max_nbr_main": 129523,
       "published": 121432,
-      "share_of_max_nbr": 0.9375323301652988,
+      "share_of_max_nbr": 0.9374628444368954,
       "share_of_sim_total": 0.9353730492520528,
       "sim_reported": 129822,
       "year": 2024
@@ -634,7 +635,7 @@
       "high_range": 28,
       "max_nbr_main": 140402,
       "published": 130791,
-      "share_of_max_nbr": 0.9315465591658239,
+      "share_of_max_nbr": 0.9313471318072392,
       "share_of_sim_total": null,
       "sim_reported": null,
       "year": 2025
@@ -643,7 +644,7 @@
       "high_range": 63,
       "max_nbr_main": 90961,
       "published": 84419,
-      "share_of_max_nbr": 0.928079066852827,
+      "share_of_max_nbr": 0.9273864623300095,
       "share_of_sim_total": null,
       "sim_reported": null,
       "year": 2026
