@@ -213,8 +213,7 @@ Commit messages must follow Conventional Commits (`feat:`, `fix:`, `docs:`, ...)
 | File | Contents |
 | --- | --- |
 | `reports/final_report.md` | Final evaluation write-up: method, validation, test, drift, horizons, limits. Start here |
-| `reports/eda_report.md` | Written EDA findings as presented; numbers come from `eda_numbers.json` |
-| `reports/eda_report_updated.md` | Updated copy of the EDA report with the 2021-2024 baseline results |
+| `reports/eda_report.md` | Written EDA findings in plain language, with the 2021-2024 baseline results; numbers come from `eda_numbers.json`. The version as presented is at tag [`v1.6.0`](https://github.com/abouganemi/ycit440-sim-forecast/blob/v1.6.0/reports/eda_report.md) |
 | `reports/eda_numbers.json` | Key numbers computed by the notebook |
 | `reports/figures/` | Figures made by the notebook |
 | `reports/baseline_report.md` | Written report on the baselines; numbers come from `baseline_validation.json` |
