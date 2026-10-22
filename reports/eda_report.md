@@ -26,8 +26,10 @@ The proposed test period, 2025 onward, is only inspected for level changes.
    so it is treated as missing, not as zero. The 600 `DIVISION = 0` rows are undocumented and
    excluded.
 2. **The open data are a subset of SIM activity.** Published counts are 93.8%, 94.3% and 93.5% of
-   the totals SIM reports for 2022, 2023 and 2024. About 6–7% of each year's incident numbers
-   never appear. The target must be called "published interventions".
+   the totals SIM reports for 2022, 2023 and 2024; part of the 2024 gap is the missing
+   2024-12-31 (about 0.3 points). If incident numbers are issued without gaps, about 6–7% of
+   each year's never appear; neither check says why. The target must be called "published
+   interventions".
 3. **The level is not stable.** Mean volume went from 227/day (2020, COVID) to 358/day (2025),
    and was flat in 2023–24.
    - **Spring 2020.** First-responder records almost vanish: 56 days between 2020-04-07 and
@@ -83,12 +85,13 @@ The proposed test period, 2025 onward, is only inspected for level changes.
 > are appended, not joined: 754,413 records from 2020-01-01 to 2026-09-24. No external dataset is
 > joined.
 >
-> Each row is one intervention event as published, with its final classification. `INCIDENT_NBR`
-> restarts every year; combined with the calendar year it is unique. `CREATION_DATE_TIME` gives
-> the event date used to build daily counts. `DIVISION` is the SIM division responsible for the
-> territory where the event occurred. It is not the unit that responded, and `CASERNE` does not
-> nest inside it. Our target is the daily count of published interventions for each of
-> Divisions 1–6. The 600 `DIVISION = 0` records are undocumented and excluded.
+> Each row is one published intervention record, with its classification as recorded at
+> extraction. `INCIDENT_NBR` restarts every year; combined with the calendar year it is unique.
+> `CREATION_DATE_TIME` gives the event date used to build daily counts. `DIVISION` is the SIM
+> division responsible for the territory where the event occurred. It is not the unit that
+> responded, and `CASERNE` does not nest inside it. Our target is the daily count of published
+> interventions for each of Divisions 1–6. The 600 `DIVISION = 0` records are undocumented and
+> excluded.
 >
 > Only information available before the forecast is used. A forecast for day *D* is prepared on
 > *D−1* from counts through *D−3*, matching the observed two-day publication lag, plus calendar
@@ -125,11 +128,11 @@ The proposed test period, 2025 onward, is only inspected for level changes.
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Dataset and source**           | Ville de Montréal, donnees.montreal.ca, `interventions-service-securite-incendie-montreal`. Files `donneesouvertes-interventions-sim2020.csv` (539,203 rows) and `donneesouvertes-interventions-sim.csv` (215,210 rows). Retrieved 2026-09-26. sha256 recorded in `data/manifest.json`. CC BY 4.0. |
 | **Purpose and coverage**         | Extract of SIM's RAO dispatch system, produced for provincial reporting. Covers 2020-01-01 to 2026-09-24 (2-day lag, daily refresh) across the Montréal agglomeration: Montréal plus 14 linked municipalities.                                                                                     |
-| **Unit represented by a row**    | One published intervention event with its final classification. There is one vehicle count per event.                                                                                                                                                                                              |
+| **Unit represented by a row**    | One published record per `(year, INCIDENT_NBR)`, classification as at extraction. One vehicle count each.                                                                                                                                                                                          |
 | **Main entities**                | Event; type and group; territorial division (`DIVISION`) and station territory (`CASERNE`); municipality and borough; displaced location. Responding units, crews and times are absent.                                                                                                            |
 | **Identifiers and joins**        | Key `(year, INCIDENT_NBR)`: 0 duplicates. The two files are appended: identical header, no date overlap, no key overlap. No external join. CASERNE→DIVISION does not nest: 94.6% of rows fall in the caserne's modal division, and 30 of 66 casernes span several divisions.                       |
 | **Relevant variables**           | `CREATION_DATE_TIME` (target date, calendar), `DIVISION` (target grouping). `DESCRIPTION_GROUPE`, `INCIDENT_TYPE_DESC` and `NOMBRE_UNITES` are used for diagnostics only.                                                                                                                          |
-| **Privacy transformations**      | Locations moved to an intersection of the street segment: 99% of rows share a coordinate with another row, across 54,308 distinct points. About 6% of dispatch numbers are unpublished. Types may be revised after the initial report.                                                             |
+| **Privacy transformations**      | Locations moved to an intersection of the street segment: 99% of rows share a coordinate with another row, across 54,308 distinct points. About 6% of incident numbers never appear (cause undocumented). Types may be revised later.                                                              |
 | **Known limitations**            | 2024-12-31 missing. 8 date-only rows. 1,788 blank groups, 156 blank unit counts, 7 `NOUVEAU`. 600 `DIVISION = 0` rows. Type vocabulary churn. First-responder breaks in 2020 and late 2025. No durations, response times, responding units, staffing or costs.                                     |
 | **Implications for the project** | Supports daily division-level counts and calendar features. The training window is 2021–2024, with 2020 as lag history. Level drift requires recent-level features and evaluation per division and per month. Does not support workload, staffing, vehicle, coverage or response-time claims.      |
 
@@ -141,7 +144,7 @@ The proposed test period, 2025 onward, is only inspected for level changes.
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
 | `CREATION_DATE_TIME`                      | Event creation time, local civil time: no records in the skipped spring-forward hour, no midnight heaping | datetime      | Known at call creation; 8 date-only rows (7 in the 2020–24 file, 1 in the current file)                                        | **Builds the target** (date) and calendar features                                  |
 | `DIVISION`                                | Division responsible for the event's territory                                                            | int, 0–6      | Complete; `0` = 600 rows, 59–100 per year, undocumented                                                                        | **Target grouping**, Divisions 1–6                                                  |
-| `INCIDENT_NBR`                            | Event number; restarts every year                                                                         | int           | Unique with the year; 93–94% of issued numbers published; a second range at 500,000 and above since 2022 (9–109 rows per year) | Key and de-duplication only                                                         |
+| `INCIDENT_NBR`                            | Event number; restarts every year                                                                         | int           | Unique with the year; 93–94% of main-range numbers appear; second range at 500,000 and above since 2022 (9–109 rows per year)  | Key and de-duplication only                                                         |
 | `DESCRIPTION_GROUPE`                      | Broad group: 6 official groups plus `NOUVEAU`                                                             | category      | 1,788 blank, mostly fire-type (mean 9.7 vehicles); 7 `NOUVEAU`                                                                 | Drift diagnostics; never a predictor for day *D*                                    |
 | `INCIDENT_TYPE_DESC`                      | Detailed type; may be revised after the initial report                                                    | category      | 117–143 types a year, of which 10–33 are new and 11–22 dropped                                                                 | Diagnostics only                                                                    |
 | `CASERNE`                                 | Station responsible for the territory, **not** the responder                                              | int           | 1 row = 0; does not nest in DIVISION                                                                                           | Not used: caserne-days are sparse (median 4, 8.96% zero)                            |
@@ -323,8 +326,8 @@ residuals:
 
 ### Steps 8–9 · Privacy and what the data do not measure
 
-Locations are snapped to intersections: 99% of rows share a coordinate. About 6% of dispatch
-numbers are unpublished. Labels may be revised. There is no personal data.
+Locations are snapped to intersections: 99% of rows share a coordinate. About 6% of incident
+numbers never appear in the open data. Labels may be revised. There is no personal data.
 
 The data do not include response or arrival times, durations, responding units, crew size,
 staffing, unit availability, costs, call priority, outcomes, or unmet demand.
