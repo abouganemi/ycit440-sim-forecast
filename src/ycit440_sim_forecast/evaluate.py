@@ -4,9 +4,12 @@ For each issue date the harness cuts ``history`` at that date's cutoff and only
 then calls the forecaster, so nothing it computes can read later counts.
 Forecasters are refitted at the first issue date of each month. Target days on
 or after ``TEST_START`` are refused unless explicitly allowed, so the test
-period stays untouched during model selection. Usage::
+period stays untouched during model selection. ``spread`` reports the
+variance and standard deviation of the errors from the saved prediction
+parquets, without re-running any model. Usage::
 
     uv run python -m ycit440_sim_forecast.evaluate baselines
+    uv run python -m ycit440_sim_forecast.evaluate spread
 """
 
 import datetime as dt
@@ -20,6 +23,7 @@ import polars as pl
 import typer
 
 from ycit440_sim_forecast.baseline import PlainMean, SameWeekdayMean
+from ycit440_sim_forecast.manifest import sha256_file
 from ycit440_sim_forecast.seed import DEFAULT_SEED
 from ycit440_sim_forecast.spec import (
     V2_DAILY,
@@ -38,8 +42,20 @@ SAME_WEEKDAY_WEEKS: tuple[int, ...] = (4, 8, 13, 26, 52)
 DEFAULT_HISTORY = Path("data/processed/division_day.parquet")
 DEFAULT_ANOMALIES = Path("data/processed/anomaly_days.parquet")
 DEFAULT_OUT = Path("reports/baseline_validation.json")
+DEFAULT_MODEL_PREDICTIONS = Path("data/processed/model_predictions_v2.parquet")
+DEFAULT_ENSEMBLE_PREDICTIONS = Path("data/processed/ensemble_predictions_v2.parquet")
+DEFAULT_HOLDOUT_PREDICTIONS = Path("data/processed/holdout_predictions_v2.parquet")
+DEFAULT_SPREAD_OUT = Path("reports/error_spread.json")
+SPREAD_VALIDATION_START = dt.date(2022, 1, 1)
+"""First target day of the ensemble validation window (2022-2024)."""
+SPREAD_DEFINITION = (
+    "error = y_pred - y_true; bias = mean error; error_var = mean squared "
+    "deviation of the error from the bias, dividing by n (not n-1); "
+    "error_sd = sqrt(error_var)"
+)
 _CLI_START = dt.datetime.combine(VALIDATION_START, dt.time())
 _CLI_END = dt.datetime.combine(VALIDATION_END, dt.time())
+_CLI_SPREAD_START = dt.datetime.combine(SPREAD_VALIDATION_START, dt.time())
 
 RESULT_SCHEMA = pl.Schema(
     {
@@ -312,6 +328,42 @@ def score(results: pl.DataFrame, by: Sequence[str] = ()) -> pl.DataFrame:
     )
 
 
+def error_spread(results: pl.DataFrame, by: Sequence[str] = ()) -> pl.DataFrame:
+    """Bias, variance and standard deviation of the errors per model and ``by``.
+
+    Errors are forecast minus actual, as in ``score``. The variance is the
+    population variance: the mean squared deviation of the errors from their
+    mean (the bias), dividing by ``n``, the number of scored rows, not
+    ``n - 1``. The standard deviation is its square root, the typical distance
+    of a miss from the average miss. Rows with a null ``y_true`` are not
+    scored. ``by`` may include ``month`` (calendar month of the window start)
+    and any column of ``results``.
+
+    Args:
+        results: Rows with ``model``, ``target_start``, ``y_true`` and
+            ``y_pred``, such as the output of ``rolling_origin``.
+        by: Grouping columns besides ``model``.
+
+    Returns:
+        ``model, *by, n, bias, error_var, error_sd`` sorted by model then
+        ``by``.
+    """
+    scored = results.filter(pl.col("y_true").is_not_null()).with_columns(
+        month=pl.col("target_start").dt.month()
+    )
+    error = pl.col("y_pred") - pl.col("y_true")
+    return (
+        scored.group_by("model", *by)
+        .agg(
+            n=pl.len(),
+            bias=error.mean(),
+            error_var=error.var(ddof=0),
+            error_sd=error.std(ddof=0),
+        )
+        .sort("model", *by)
+    )
+
+
 def paired_bootstrap(
     results: pl.DataFrame,
     model: str,
@@ -549,6 +601,106 @@ def baselines(
             f"{row['model']} {row['mae']:.2f}" for row in setting["overall"]
         )
         typer.echo(f"{key}: MAE {overall}")
+    typer.echo(f"wrote {out}")
+
+
+def spread_tables(
+    results: pl.DataFrame, by: Sequence[Sequence[str]]
+) -> dict[str, list[dict[str, Any]]]:
+    """``error_spread`` tables of ``results``, one per grouping, as dicts.
+
+    Args:
+        results: Prediction rows.
+        by: Groupings; ``()`` gives the ``overall`` table and ``[col]`` the
+            ``by_<col>`` table (``DIVISION`` is lowered to ``division``).
+
+    Returns:
+        Table name to rows.
+    """
+    return {
+        ("by_" + "_".join(g).lower() if g else "overall"): error_spread(
+            results, g
+        ).to_dicts()
+        for g in by
+    }
+
+
+@app.command()
+def spread(
+    predictions: Annotated[
+        Path, typer.Option(help="Validation predictions of the single models.")
+    ] = DEFAULT_MODEL_PREDICTIONS,
+    ensemble_predictions: Annotated[
+        Path, typer.Option(help="Validation predictions of the ensembles.")
+    ] = DEFAULT_ENSEMBLE_PREDICTIONS,
+    holdout_predictions: Annotated[
+        Path, typer.Option(help="Test-period predictions of the one-time run.")
+    ] = DEFAULT_HOLDOUT_PREDICTIONS,
+    out: Annotated[Path, typer.Option(help="JSON report path.")] = DEFAULT_SPREAD_OUT,
+    start: Annotated[
+        dt.datetime,
+        typer.Option(formats=["%Y-%m-%d"], help="First validation target day."),
+    ] = _CLI_SPREAD_START,
+    end: Annotated[
+        dt.datetime,
+        typer.Option(formats=["%Y-%m-%d"], help="Last validation target day."),
+    ] = _CLI_END,
+) -> None:
+    """Report error variance and SD from saved predictions; re-runs no model.
+
+    Validation rows are filtered to ``start``..``end`` on ``target_start``;
+    the test rows are split at ``holdout.BREAK_DATE``. Anomaly days are kept.
+
+    Args:
+        predictions: Validation predictions of the single models.
+        ensemble_predictions: Validation predictions of the ensembles.
+        holdout_predictions: Test-period predictions of the one-time run.
+        out: JSON report path.
+        start: First validation target day.
+        end: Last validation target day.
+
+    Raises:
+        typer.Exit: If a prediction parquet is missing.
+    """
+    # Imported here: holdout and models import this module (circular import).
+    from ycit440_sim_forecast.holdout import BREAK_DATE, with_period
+    from ycit440_sim_forecast.models import rounded
+
+    inputs = (predictions, ensemble_predictions, holdout_predictions)
+    for path in inputs:
+        if not path.is_file():
+            typer.echo(
+                f"{path} not found; run the models, ensemble and holdout steps first",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+    validation = pl.concat(
+        [pl.read_parquet(predictions), pl.read_parquet(ensemble_predictions)],
+        how="diagonal_relaxed",
+    ).filter(pl.col("target_start").is_between(start.date(), end.date()))
+    test = with_period(pl.read_parquet(holdout_predictions), BREAK_DATE)
+    report = {
+        "definition": SPREAD_DEFINITION,
+        "validation": {
+            "start": str(start.date()),
+            "end": str(end.date()),
+            **spread_tables(validation, [(), ["DIVISION"]]),
+        },
+        "test": {
+            "start": str(test["target_start"].min()),
+            "end": str(test["target_end"].max()),
+            "break_date": str(BREAK_DATE),
+            **spread_tables(test, [(), ["DIVISION"], ["period"]]),
+        },
+        "input_sha256": {str(path): sha256_file(path) for path in inputs},
+    }
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rounded(report), indent=2, sort_keys=True) + "\n")
+    for part in ("validation", "test"):
+        overall = ", ".join(
+            f"{row['model']} {row['error_sd']:.2f}" for row in report[part]["overall"]
+        )
+        typer.echo(f"{part}: error SD {overall}")
     typer.echo(f"wrote {out}")
 
 
