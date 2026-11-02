@@ -72,6 +72,8 @@ It prints `data matches manifest` or lists what is missing or changed. In a fres
 
 ## Run the pipeline
 
+**Not a programmer?** You don't need to run anything below to see how the forecast works. Open notebooks `02` to `05` in [`notebooks/`](notebooks/) on GitHub, in that order: they explain the data, the five models, the ensemble, the test results and a live forecast in plain language, with their charts already shown. See [`notebooks/README.md`](notebooks/README.md#presentation-notebooks-0205).
+
 Run these in order, from the repo root. Each step needs the output of the one before it.
 
 ### 1. EDA notebook (writes the processed data)
