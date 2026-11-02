@@ -204,6 +204,27 @@ smaller errors, and an interval that includes 0 means no clear difference.
 Without windows that contain an anomaly day (an unusual day, such as a storm, flagged in the
 EDA), `ens_mean` scores 7.35 against 7.96 and 8.05 for the two baselines.
 
+### Spread of errors by division
+
+How to read this table: each cell is the standard deviation (SD) of the errors for that
+division, in interventions per division-day: the typical distance of a miss from the average
+miss (lower means the misses are more alike). Anomaly days are included, as in the MAE table.
+From `reports/error_spread.json`.
+
+| Division | ens_mean SD | same_wd_13w SD | plain_28d SD |
+| -------- | ----------- | -------------- | ------------ |
+| 1        | 15.72       | 16.28          | 16.47        |
+| 2        | 14.02       | 14.57          | 14.78        |
+| 3        | 18.40       | 19.16          | 19.66        |
+| 4        | 13.51       | 13.95          | 14.15        |
+| 5        | 15.54       | 16.43          | 16.81        |
+| 6        | 10.50       | 11.06          | 11.41        |
+| All      | 14.82       | 15.45          | 15.75        |
+
+`ens_mean` has the smallest SD in every division. The SDs are almost twice the MAEs because a
+few very large misses, such as the April 2023 ice storm, count heavily once squared. Division 3
+has the widest spread; Division 1, which has the smallest MAE, has the second-widest (15.72).
+
 ### Tuned versus untuned ensemble
 
 Tuning means searching for better model settings. The three boosters in the ensemble
@@ -320,6 +341,28 @@ a row to see which method did best in that division.
 `ens_mean` beats `same_wd_13w` in all six divisions. It is within 0.1 of `plain_28d` in
 Divisions 1 and 4 and lower in the other four.
 
+### Spread of errors by division (whole test)
+
+How to read this table: each cell is the standard deviation (SD) of the errors for that
+division: the typical distance of a miss from the average miss (lower means the misses are more
+alike). Computed from the saved test forecasts; nothing was re-run. From
+`reports/error_spread.json`.
+
+| Division | ens_mean SD | same_wd_13w SD | plain_28d SD |
+| -------- | ----------- | -------------- | ------------ |
+| 1        | 10.27       | 10.48          | 10.23        |
+| 2        | 10.88       | 11.62          | 11.02        |
+| 3        | 11.65       | 12.35          | 11.91        |
+| 4        | 10.52       | 11.28          | 10.43        |
+| 5        | 11.26       | 12.32          | 11.37        |
+| 6        | 10.71       | 12.27          | 11.25        |
+| All      | 10.90       | 11.75          | 11.05        |
+
+`ens_mean` has a smaller SD than `same_wd_13w` in all six divisions; against `plain_28d` it is
+smaller in four and larger by less than 0.1 in Divisions 1 and 4, the same pattern as the MAE.
+The test SDs (about 11) are well below the validation ones (about 15): the test period has no
+miss as large as the April 2023 ice storm.
+
 ### Drift: before and after the late-2025 break
 
 Drift is a shift in the level of the data over time. The split date, 2025-12-20, is the start of
@@ -427,6 +470,7 @@ done
 uv run python -m ycit440_sim_forecast.horizons compare
 uv run python -m ycit440_sim_forecast.tuning run --trials 40         # about 20 min; validation only
 uv run python -m ycit440_sim_forecast.holdout run                     # once; refuses to overwrite
+uv run python -m ycit440_sim_forecast.evaluate spread                 # error variance and SD; re-runs no model
 ```
 
 The holdout input hash and configuration are stored in `holdout_test.json`.
@@ -462,8 +506,15 @@ The holdout input hash and configuration are stored in `holdout_test.json`.
   what was known then. Used instead of k-fold, which would let the model train on days after the
   ones it predicts.
 - **Share under:** the fraction of days on which the forecast was below the actual.
+- **Standard deviation (SD):** the square root of the variance of the errors, in
+  interventions per division-day: the typical distance of a miss from the average miss. It
+  divides by n, the number of division-days, not n−1. It is larger than the MAE because big
+  misses count more once squared.
 - **Validation vs test period:** validation (2021–2024) is the data used to choose and compare
   models. The test period (2025-01-01 → 2026-09-24) was held back and scored once, after the
   final model was fixed.
+- **Variance (of errors):** the average of the squared distance between each miss (forecast
+  minus actual) and the average miss (the bias). It divides by n, the number of division-days,
+  not n−1. Its unit is interventions squared, so the SD is easier to read.
 - **WAPE:** the total miss divided by the total actual count, a percentage-like error that allows
   comparison across different sizes (0.153 means about 15%).
