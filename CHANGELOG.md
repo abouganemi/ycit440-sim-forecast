@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.6.0...v1.7.0) (2026-11-03)
+
+
+### Bug Fixes
+
+* **notebooks:** resolve type errors failing CI ([f476931](https://github.com/abouganemi/ycit440-sim-forecast/commit/f47693188f41aa03a73966c72e8d1345d7bcb49d))
+
+
+### Features
+
+* **evaluate:** report error variance and SD by division ([fb27289](https://github.com/abouganemi/ycit440-sim-forecast/commit/fb272892916b99b50c0687773a5dccd6e20b4dcd))
+
 # [1.6.0](https://github.com/abouganemi/ycit440-sim-forecast/compare/v1.5.0...v1.6.0) (2026-10-12)
 
 
