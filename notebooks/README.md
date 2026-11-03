@@ -54,3 +54,26 @@ Unlike 01, they write no files. After changing one, refresh its outputs from the
 ```bash
 uv run --with nbconvert jupyter nbconvert --to notebook --execute --inplace notebooks/<name>.ipynb
 ```
+
+## Step-by-step modelling notebooks (`modelling/`)
+
+Cristal's six notebooks, `1_…` to `6_…`, build a forecast from scratch in plain pandas, one step
+per notebook: data preparation, the same-weekday baseline, feature engineering, the monthly
+validation schedule, LightGBM and CatBoost training, and a comparison with linear regression.
+They were written in Colab and are kept as written; only the file paths were changed and the
+`%pip install` cells replaced (LightGBM and CatBoost are already project dependencies). They are
+not part of the `ycit440_sim_forecast` pipeline, so ruff and basedpyright skip this folder.
+
+Each notebook reads the previous one's output, so run them in order. Notebook 1 reads the raw
+CSVs in `data/raw/`, and notebooks 1 to 5 write their CSV outputs to `data/interim/modelling/`
+(committed, so any notebook can be opened on its own). Like 01, they keep their outputs. To
+refresh them, run from the repo root (about 20 s in total):
+
+```bash
+for f in notebooks/modelling/[1-6]_*.ipynb; do
+  uv run --with nbconvert jupyter nbconvert --to notebook --execute --inplace "$f"
+done
+```
+
+On the committed data the outputs match the original Colab run; the model predictions differ
+only by floating-point rounding (about 1e-14).
