@@ -451,3 +451,156 @@ def test_paired_bootstrap_rejects_bad_input() -> None:
         ev.paired_bootstrap(bootstrap_frame(), "a", "b", block="day")  # pyright: ignore[reportArgumentType]
     with pytest.raises(ValueError, match="no scored rows"):
         ev.paired_bootstrap(bootstrap_frame(), "a", "missing")
+
+
+SPREAD_ERRORS = [3.0, -1.0, -2.0, -6.0, 0.0]
+
+
+def test_error_spread_divides_by_n() -> None:
+    # Same errors as test_score_median_error_and_under_share: bias -1.2.
+    # Deviations 4.2, 0.2, -0.8, -4.8, 1.2 square to 17.64 + 0.04 + 0.64 +
+    # 23.04 + 1.44 = 42.8, so the variance is 42.8 / 5 = 8.56 (n - 1: 10.7).
+    frame = pl.DataFrame(
+        {
+            "model": ["m"] * 6,
+            "target_start": [dt.date(2024, 1, d) for d in range(1, 7)],
+            "y_true": [10.0, 10.0, 10.0, 10.0, 10.0, None],
+            "y_pred": [10.0 + e for e in SPREAD_ERRORS] + [1.0],
+        }
+    )
+    row = ev.error_spread(frame).row(0, named=True)
+    assert row["n"] == 5  # the row without truth is not scored
+    assert row["bias"] == pytest.approx(-1.2)
+    assert row["error_var"] == pytest.approx(8.56)
+    assert row["error_sd"] == pytest.approx(8.56**0.5)
+    assert row["error_var"] != pytest.approx(42.8 / 4)
+    assert list(row) == ["model", "n", "bias", "error_var", "error_sd"]
+
+
+def test_error_spread_by_group_and_month() -> None:
+    table = ev.error_spread(results_frame(), ["DIVISION"])
+    assert table.columns == ["model", "DIVISION", "n", "bias", "error_var", "error_sd"]
+    # Model a: errors 2 and -4 (bias -1, var 9); model b: 0 and 1 (var 0.25).
+    assert table["model"].to_list() == ["a", "b"]
+    assert table["bias"].to_list() == pytest.approx([-1.0, 0.5])
+    assert table["error_var"].to_list() == pytest.approx([9.0, 0.25])
+    assert table["error_sd"].to_list() == pytest.approx([3.0, 0.5])
+    by_month = ev.error_spread(results_frame(), ["month"])
+    assert by_month["month"].to_list() == [1, 1]  # February row has no truth
+
+
+def prediction_rows(
+    model: str, days: list[dt.date], errors: list[float]
+) -> pl.DataFrame:
+    return pl.DataFrame(
+        {
+            "spec": ["lag2_lead1_win1"] * len(days),
+            "model": [model] * len(days),
+            "issue_date": [d - dt.timedelta(days=1) for d in days],
+            "cutoff": [d - dt.timedelta(days=3) for d in days],
+            "target_start": days,
+            "target_end": days,
+            "DIVISION": [1 + i % 2 for i in range(len(days))],
+            "y_true": [50.0] * len(days),
+            "y_pred": [50.0 + e for e in errors],
+            "anomaly": [False] * len(days),
+        },
+        schema={**ev.RESULT_SCHEMA, "anomaly": pl.Boolean},
+    )
+
+
+@pytest.fixture
+def spread_inputs(tmp_path: Path) -> tuple[Path, Path, Path]:
+    models_path = tmp_path / "model_predictions.parquet"
+    ensemble_path = tmp_path / "ensemble_predictions.parquet"
+    holdout_path = tmp_path / "holdout_predictions.parquet"
+    val_days = [dt.date(2021, 6, 1), *(dt.date(2022, 3, d) for d in range(1, 5))]
+    pl.concat(
+        [
+            prediction_rows("same_wd_13w", val_days, [99.0, 1.0, -1.0, 1.0, -1.0]),
+            prediction_rows("plain_28d", val_days, [99.0, 2.0, 2.0, 2.0, 2.0]),
+        ]
+    ).write_parquet(models_path)
+    prediction_rows("ens_mean", val_days[1:], [3.0, -1.0, -2.0, -6.0]).write_parquet(
+        ensemble_path
+    )
+    test_days = [dt.date(2025, 12, 18), dt.date(2025, 12, 19), dt.date(2025, 12, 20)]
+    prediction_rows("ens_mean", test_days, [2.0, -2.0, 5.0]).write_parquet(holdout_path)
+    return models_path, ensemble_path, holdout_path
+
+
+def test_cli_spread(tmp_path: Path, spread_inputs: tuple[Path, Path, Path]) -> None:
+    from ycit440_sim_forecast import holdout
+
+    models_path, ensemble_path, holdout_path = spread_inputs
+    out = tmp_path / "spread.json"
+    result = runner.invoke(
+        ev.app,
+        [
+            "spread",
+            "--predictions",
+            str(models_path),
+            "--ensemble-predictions",
+            str(ensemble_path),
+            "--holdout-predictions",
+            str(holdout_path),
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    text = out.read_text()
+    assert text.endswith("}\n")
+    report = json.loads(text)
+    assert set(report) == {"definition", "validation", "test", "input_sha256"}
+    assert "n-1" in report["definition"]
+    validation = report["validation"]
+    assert (validation["start"], validation["end"]) == ("2022-01-01", "2024-12-31")
+    overall = {row["model"]: row for row in validation["overall"]}
+    assert set(overall) == {"ens_mean", "plain_28d", "same_wd_13w"}
+    # The 2021 row with error 99 is outside the window.
+    assert overall["same_wd_13w"] == {
+        "model": "same_wd_13w",
+        "n": 4,
+        "bias": 0.0,
+        "error_var": 1.0,
+        "error_sd": 1.0,
+    }
+    assert overall["plain_28d"]["error_sd"] == 0.0
+    assert overall["ens_mean"]["error_var"] == 10.25  # errors 3, -1, -2, -6
+    assert {row["DIVISION"] for row in validation["by_division"]} == {1, 2}
+    test = report["test"]
+    assert test["break_date"] == str(holdout.BREAK_DATE)
+    assert (test["start"], test["end"]) == ("2025-12-18", "2025-12-20")
+    periods = {row["period"]: row for row in test["by_period"]}
+    assert periods["before_break"]["n"] == 2
+    assert periods["before_break"]["error_var"] == 4.0
+    assert periods["after_break"]["error_sd"] == 0.0
+    assert test["overall"][0]["error_var"] == pytest.approx(8.222, abs=1e-3)
+    assert set(report["input_sha256"]) == {
+        str(p) for p in (models_path, ensemble_path, holdout_path)
+    }
+    assert "validation: error SD" in result.output
+
+
+def test_cli_spread_missing_input(
+    tmp_path: Path, spread_inputs: tuple[Path, Path, Path]
+) -> None:
+    models_path, ensemble_path, _ = spread_inputs
+    result = runner.invoke(
+        ev.app,
+        [
+            "spread",
+            "--predictions",
+            str(models_path),
+            "--ensemble-predictions",
+            str(ensemble_path),
+            "--holdout-predictions",
+            str(tmp_path / "nope.parquet"),
+            "--out",
+            str(tmp_path / "spread.json"),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "not found" in result.output
+    assert not (tmp_path / "spread.json").exists()

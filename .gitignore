@@ -289,3 +289,6 @@ $RECYCLE.BIN/
 
 # Local-only notes for Claude sessions; never committed.
 /claude_handoff/
+
+# CatBoost training logs (written next to the notebook that trains it)
+catboost_info/

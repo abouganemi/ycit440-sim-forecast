@@ -72,6 +72,8 @@ It prints `data matches manifest` or lists what is missing or changed. In a fres
 
 ## Run the pipeline
 
+**Not a programmer?** You don't need to run anything below to see how the forecast works. Open notebooks `02` to `05` in [`notebooks/`](notebooks/) on GitHub, in that order: they explain the data, the five models, the ensemble, the test results and a live forecast in plain language, with their charts already shown. See [`notebooks/README.md`](notebooks/README.md#presentation-notebooks-0205).
+
 Run these in order, from the repo root. Each step needs the output of the one before it.
 
 ### 1. EDA notebook (writes the processed data)
@@ -165,6 +167,16 @@ Scores `ens_mean`, its five candidates and both baselines on 2025-01-01 to the l
 The test set is meant to be scored once. `reports/holdout_test.json` is already committed, so in a fresh clone `holdout run` refuses to run (see Troubleshooting). To reproduce the result, pass both `--out` and `--predictions` with new paths outside the repo (as above; the guard only checks `--out`, but without `--predictions` the tracked `data/processed/holdout_predictions_v2.parquet` is overwritten, and a path inside the repo would show up as an untracked file), and compare it with the committed file. Use `--force` only to replace the official result on purpose. Do not rerun it to compare models or tune anything.
 
 Options: `--history`, `--anomalies`, `--out`, `--predictions` (paths), `--force`. The end date is the last date in `data/processed/division_day.parquet`. With a fresh portal download (see the manifest note in "Get the data") the test period contains more days than the committed result, so the numbers will differ.
+
+### 7. Error spread (seconds)
+
+```bash
+uv run python -m ycit440_sim_forecast.evaluate spread
+```
+
+Reports the variance and standard deviation of the errors (forecast minus actual; the variance divides by n, the number of division-days, not n-1), by model and by division. It reads the saved predictions only (`data/processed/model_predictions_v2.parquet`, `data/processed/ensemble_predictions_v2.parquet` and `data/processed/holdout_predictions_v2.parquet`), re-runs no model and does not touch the one-time test. It writes `reports/error_spread.json`: validation 2022-2024 overall and by division, and the test overall, by division and before/after the 2025-12-20 break, with the SHA-256 of each input.
+
+Options: `--predictions`, `--ensemble-predictions`, `--holdout-predictions`, `--out` (paths), `--start`, `--end` (validation window, `YYYY-MM-DD`; default 2022-01-01 to 2024-12-31).
 
 ### Optional: refresh the portal metadata snapshot
 
