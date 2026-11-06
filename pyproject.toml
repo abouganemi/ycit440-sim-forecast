@@ -3,7 +3,10 @@ name = "ycit440-sim-forecast"
 version = "1.7.0"
 description = "ycit440-sim-forecast (data science project)"
 readme = "README.md"
-authors = [{ name = "Isaac Abouganem", email = "43149476+abouganemi@users.noreply.github.com" }]
+authors = [
+    { name = "Isaac Abouganem", email = "43149476+abouganemi@users.noreply.github.com" },
+    { name = "Cristal Cortez" },
+]
 requires-python = ">=3.13,<3.15"
 dependencies = [
     "catboost>=1.2.10",
