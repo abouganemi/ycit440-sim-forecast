@@ -44,8 +44,8 @@ gpu = [
 
 [tool.ruff]
 # docs/ holds archival scripts copied from the framing stage; they are kept verbatim.
-# notebooks/modelling/ holds a teammate's notebooks, kept as written (only paths adapted).
-extend-exclude = ["docs", "notebooks/modelling"]
+# notebooks/modelling/ and notebooks/final/ hold a teammate's notebooks, kept as written (only paths adapted).
+extend-exclude = ["docs", "notebooks/modelling", "notebooks/final"]
 force-exclude = true # also skip them when pre-commit passes file names explicitly
 
 [tool.ruff.lint]
@@ -84,8 +84,8 @@ convention = "google"
 [tool.basedpyright]
 typeCheckingMode = "standard"
 # Setting exclude replaces the defaults, so the hidden-dir and cache patterns are repeated.
-# notebooks/modelling/ is a teammate's work kept as written, like docs/.
-exclude = ["docs", "notebooks/modelling", "**/.*", "**/__pycache__", "**/node_modules"]
+# notebooks/modelling/ and notebooks/final/ are a teammate's work kept as written, like docs/.
+exclude = ["docs", "notebooks/modelling", "notebooks/final", "**/.*", "**/__pycache__", "**/node_modules"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
