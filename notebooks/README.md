@@ -80,22 +80,25 @@ only by floating-point rounding (about 1e-14).
 
 ## Final modelling notebooks (`final/`)
 
-The final versions of Cristal's six notebooks, from the team share's `Final Files` folder
-(2026-11-15). They follow the same steps as `modelling/` and are adapted the same way: Colab
-paths changed and `%pip install` cells replaced, nothing else. `modelling/` is kept as the earlier
+The final versions of Cristal's seven notebooks, from the team share's `Final Files` folder
+(2026-11-15). Notebooks 1 to 6 follow the same steps as `modelling/`; notebook 7 trains the
+selected model and scores it once on the test period. They are adapted the same way: Colab paths
+changed and `%pip install` cells replaced, nothing else. `modelling/` is kept as the earlier
 version.
 
-They read the raw CSVs in `data/raw/` and write their outputs to `data/interim/final/`, so they
-never overwrite the `modelling/` CSVs. They keep their outputs. To refresh them, run in order from
+They read the raw CSVs in `data/raw/` and write their outputs to `data/interim/final/`
+(notebook 7 to `data/interim/final/SIM_Stage7_Results/`), so they never overwrite the
+`modelling/` CSVs. They keep their outputs. To refresh them, run in order from
 the repo root:
 
 ```bash
-for f in notebooks/final/[1-6]_*.ipynb; do
+for f in notebooks/final/[1-7]_*.ipynb; do
   uv run --with nbconvert jupyter nbconvert --to notebook --execute --inplace "$f"
 done
 ```
 
-On the committed data the outputs match Cristal's Colab run, with three cosmetic differences:
+On the committed data the outputs match Cristal's Colab run: the CSVs are identical or differ by
+floating-point rounding (under 1e-11). The notebooks show three cosmetic differences:
 pandas 3 shows text columns as `str` rather than `object`, the unseeded row sample in notebook 1
 picks different rows, and notebook 3's first feature preview shows 12 columns, not the 14 left in
 the Colab session by running later cells first.
